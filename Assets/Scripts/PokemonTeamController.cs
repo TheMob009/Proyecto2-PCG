@@ -52,10 +52,8 @@ public class PokemonTeamCandidate
      *
      * Cada número corresponde a una posición dentro del dataset.
      *
-     * Ejemplo conceptual:
-     * dataset[25]  -> Pikachu
-     * dataset[131] -> Lapras
-     * dataset[94]  -> Gengar
+     * Los índices empiezan en cero y respetan el orden de carga.
+     * No son números de la Pokédex: dataset[0] es el primer Pokémon.
      *
      * Por lo tanto, genes representa un equipo de seis Pokémon.
      */
@@ -70,7 +68,7 @@ public class PokemonTeamCandidate
     public int uniqueTypes;
     public int uniqueRoles;
 
-    public PokemonTeamCandidate(int teamSize)
+    public PokemonTeamCandidate(int teamSize = 6)
     {
         genes = new int[teamSize];
     }

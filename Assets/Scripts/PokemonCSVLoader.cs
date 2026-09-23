@@ -114,19 +114,68 @@ public class PokemonCSVLoader : MonoBehaviour
     [ContextMenu("Load CSV")]
     public void Load()
     {
-        // TODO: Implementar la carga siguiendo el pseudocódigo.
-        //
-        // Puede utilizar directamente los métodos auxiliares:
-        // ParseCsvLine(...)
-        // BuildColumnMap(...)
-        // ReadString(...)
-        // ReadInt(...)
-
         pokemon.Clear();
 
-        Debug.LogWarning(
-            "[PokemonCSVLoader] TODO: implementar Load()."
-        );
+        if (csvFile == null || string.IsNullOrWhiteSpace(csvFile.text))
+        {
+            Debug.LogError("[PokemonCSVLoader] Assign a non-empty CSV file.");
+            return;
+        }
+
+        string[] lines = csvFile.text.TrimStart('\uFEFF').Split(
+            new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None);
+        Dictionary<string, int> columns = BuildColumnMap(ParseCsvLine(lines[0]));
+        string[] requiredColumns =
+        {
+            "Name", "Type 1", "Type 2", "HP", "Att", "Spa", "Def", "Spd", "Spe", "BST"
+        };
+
+        foreach (string column in requiredColumns)
+        {
+            if (!columns.ContainsKey(column))
+            {
+                Debug.LogError($"[PokemonCSVLoader] Missing column: {column}.");
+                return;
+            }
+        }
+
+        for (int i = 1; i < lines.Length; i++)
+        {
+            if (string.IsNullOrWhiteSpace(lines[i]))
+                continue;
+
+            List<string> values = ParseCsvLine(lines[i]);
+            bool valid = !string.IsNullOrWhiteSpace(ReadString(values, columns["Name"])) &&
+                !string.IsNullOrWhiteSpace(ReadString(values, columns["Type 1"]));
+
+            // Las estadísticas faltantes o inválidas no deben convertirse en cero.
+            for (int j = 3; j < requiredColumns.Length && valid; j++)
+            {
+                valid = int.TryParse(
+                    ReadString(values, columns[requiredColumns[j]]),
+                    NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) && value >= 0;
+            }
+
+            if (!valid)
+            {
+                Debug.LogWarning($"[PokemonCSVLoader] Skipping invalid row {i + 1}.");
+                continue;
+            }
+
+            pokemon.Add(new PokemonData
+            {
+                name = ReadString(values, columns["Name"]),
+                type1 = ReadString(values, columns["Type 1"]),
+                type2 = ReadString(values, columns["Type 2"]),
+                hp = ReadInt(values, columns["HP"]),
+                offense = Math.Max(ReadInt(values, columns["Att"]), ReadInt(values, columns["Spa"])),
+                defense = Math.Max(ReadInt(values, columns["Def"]), ReadInt(values, columns["Spd"])),
+                speed = ReadInt(values, columns["Spe"]),
+                bst = ReadInt(values, columns["BST"])
+            });
+        }
+
+        Debug.Log($"[PokemonCSVLoader] Loaded {pokemon.Count} Pokemon.");
     }
 
     // ============================================================
