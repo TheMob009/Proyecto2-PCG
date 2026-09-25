@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public enum TeamGenerationMethod
 {
@@ -288,6 +289,8 @@ public class PokemonTeamSlotUI
     public TMP_Text nameText;
     public TMP_Text typesText;
     public TMP_Text statsText;
+    public TMP_Text bstText;
+    public TMP_Text roleText;
 }
 
 public class PokemonTeamController : MonoBehaviour
@@ -312,12 +315,35 @@ public class PokemonTeamController : MonoBehaviour
 
     [Header("Summary UI")]
     [SerializeField] private TMP_Text summaryText;
+    [SerializeField] private TMP_Text methodText;
+    [SerializeField] private TMP_Text fitnessText;
+    [SerializeField] private TMP_Text powerText;
+    [SerializeField] private TMP_Text diversityText;
+    [SerializeField] private TMP_Text averageBSTText;
+    [SerializeField] private TMP_Text uniquePokemonText;
+    [SerializeField] private TMP_Text uniqueTypesText;
+    [SerializeField] private TMP_Text uniqueRolesText;
+    [SerializeField] private TMP_Text statusText;
+
+    [Header("Runtime Conditions")]
+    [SerializeField] private Slider minAverageBSTSlider;
+    [SerializeField] private Slider maxAverageBSTSlider;
+    [SerializeField] private Slider targetUniqueTypesSlider;
+    [SerializeField] private Slider outputFitnessThresholdSlider;
+
+    [Header("Slider Value Labels")]
+    [Tooltip("Each slider and its value label must occupy the same index.")]
+    [SerializeField] private Slider[] parameterSliders = new Slider[0];
+    [SerializeField] private TMP_Text[] parameterValueTexts = new TMP_Text[0];
 
     public void GenerateTeam()
     {
+        SetGenerationMethod(0);
+
         if (loader == null)
         {
             Debug.LogError("[PokemonTeamController] Loader not assigned.");
+            if (statusText != null) statusText.text = "Falta asignar el archivo de datos.";
             return;
         }
 
@@ -327,6 +353,7 @@ public class PokemonTeamController : MonoBehaviour
         if (loader.Data.Count == 0)
         {
             Debug.LogError("[PokemonTeamController] Dataset is empty.");
+            if (statusText != null) statusText.text = "No se pudo cargar el CSV de Pokemon.";
             return;
         }
 
@@ -336,7 +363,10 @@ public class PokemonTeamController : MonoBehaviour
         {
             case TeamGenerationMethod.GeneticAlgorithm:
                 if (geneticAlgorithm == null)
+                {
+                    if (statusText != null) statusText.text = "Falta asignar el algoritmo genetico.";
                     return;
+                }
 
                 result = geneticAlgorithm.Generate(loader.Data, config);
                 break;
@@ -352,6 +382,7 @@ public class PokemonTeamController : MonoBehaviour
         if (result == null)
         {
             Debug.LogError("[PokemonTeamController] No team was generated.");
+            if (statusText != null) statusText.text = "No se pudo generar un equipo.";
             return;
         }
 
@@ -360,9 +391,41 @@ public class PokemonTeamController : MonoBehaviour
 
     public void SetGenerationMethod(int value)
     {
-        generationMethod = value == 0
-            ? TeamGenerationMethod.GeneticAlgorithm
-            : TeamGenerationMethod.EvolutionaryStrategy;
+        // Esta entrega habilita únicamente GA. Los sliders reutilizan este evento
+        // para actualizar sus etiquetas sin añadir métodos a la plantilla.
+        generationMethod = TeamGenerationMethod.GeneticAlgorithm;
+        if (value != 0)
+        {
+            if (statusText != null) statusText.text = "Estrategia evolutiva aun no disponible.";
+            return;
+        }
+
+        if (minAverageBSTSlider != null)
+            config.minAverageBST = Mathf.RoundToInt(minAverageBSTSlider.value);
+        if (maxAverageBSTSlider != null)
+        {
+            config.maxAverageBST = Mathf.RoundToInt(maxAverageBSTSlider.value);
+            if (config.minAverageBST > config.maxAverageBST)
+            {
+                config.maxAverageBST = config.minAverageBST;
+                maxAverageBSTSlider.SetValueWithoutNotify(config.maxAverageBST);
+            }
+        }
+        if (targetUniqueTypesSlider != null)
+            config.targetUniqueTypes = Mathf.RoundToInt(targetUniqueTypesSlider.value);
+        if (outputFitnessThresholdSlider != null)
+            config.outputFitnessThreshold = outputFitnessThresholdSlider.value;
+
+        int count = Mathf.Min(parameterSliders.Length, parameterValueTexts.Length);
+        for (int i = 0; i < count; i++)
+        {
+            Slider slider = parameterSliders[i];
+            TMP_Text label = parameterValueTexts[i];
+            if (slider != null && label != null)
+                label.text = slider.value.ToString(slider.wholeNumbers ? "0" : "0.00");
+        }
+
+        if (statusText != null) statusText.text = "Pulsa Generar para aplicar los parametros.";
     }
 
     private void DisplayTeam(PokemonTeamCandidate team)
@@ -390,9 +453,35 @@ public class PokemonTeamController : MonoBehaviour
 
                 slot.statsText.text =
                     $"HP {pokemon.hp}   OFF {pokemon.offense}\n" +
-                    $"DEF {pokemon.defense}   SPD {pokemon.speed}\n" +
-                    $"BST {pokemon.bst}   {role}";
+                    $"DEF {pokemon.defense}   SPD {pokemon.speed}";
+
+                // Mantener compatibilidad con una tarjeta que use un único texto.
+                if (slot.bstText == null && slot.roleText == null)
+                    slot.statsText.text += $"\nBST {pokemon.bst}   {role}";
             }
+
+            if (slot.bstText != null) slot.bstText.text = $"BST {pokemon.bst}";
+            if (slot.roleText != null)
+            {
+                PokemonRole role = PokemonTeamFitness.GetRole(pokemon);
+                slot.roleText.text = role == PokemonRole.Fast ? "Rapido"
+                    : role == PokemonRole.Defensive ? "Defensivo" : "Ofensivo";
+            }
+        }
+
+        if (methodText != null) methodText.text = "GA";
+        if (fitnessText != null) fitnessText.text = team.fitness.ToString("0.000");
+        if (powerText != null) powerText.text = team.powerScore.ToString("0.000");
+        if (diversityText != null) diversityText.text = team.diversityScore.ToString("0.000");
+        if (averageBSTText != null) averageBSTText.text = team.averageBST.ToString("0.0");
+        if (uniquePokemonText != null) uniquePokemonText.text = $"{team.uniquePokemon}/{team.genes.Length}";
+        if (uniqueTypesText != null) uniqueTypesText.text = team.uniqueTypes.ToString();
+        if (uniqueRolesText != null) uniqueRolesText.text = $"{team.uniqueRoles}/3";
+        if (statusText != null)
+        {
+            statusText.text = team.fitness >= config.outputFitnessThreshold
+                ? "Equipo generado: alcanza el umbral de fitness."
+                : "Umbral no alcanzado: se muestra uno de los mejores equipos.";
         }
 
         if (summaryText != null)

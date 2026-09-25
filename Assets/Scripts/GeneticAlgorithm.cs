@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class GeneticAlgorithm : MonoBehaviour
 {
@@ -90,6 +91,14 @@ public class GeneticAlgorithm : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private bool logProgress = true;
 
+    [Header("Runtime UI (optional)")]
+    [SerializeField] private Slider populationSizeSlider;
+    [SerializeField] private Slider generationsSlider;
+    [SerializeField] private Slider crossoverRateSlider;
+    [SerializeField] private Slider mutationRateSlider;
+    [SerializeField] private Slider tournamentSizeSlider;
+    [SerializeField] private Slider elitismSlider;
+
     /*
      * ============================================================
      * ALGORITMO GENÉTICO
@@ -143,27 +152,72 @@ public class GeneticAlgorithm : MonoBehaviour
         if (dataset == null || dataset.Count == 0)
             return null;
 
+        if (config == null || config.teamSize < 1)
+        {
+            Debug.LogError("[GeneticAlgorithm] A configuration with at least one team member is required.");
+            return null;
+        }
+
+        // Leer la interfaz en cada ejecución; sin interfaz se usa el Inspector.
+        if (populationSizeSlider != null)
+            populationSize = Mathf.Max(2, Mathf.RoundToInt(populationSizeSlider.value));
+        if (generationsSlider != null)
+            generations = Mathf.Max(1, Mathf.RoundToInt(generationsSlider.value));
+        if (crossoverRateSlider != null)
+            crossoverRate = Mathf.Clamp01(crossoverRateSlider.value);
+        if (mutationRateSlider != null)
+            mutationRate = Mathf.Clamp01(mutationRateSlider.value);
+        if (tournamentSizeSlider != null)
+            tournamentSize = Mathf.Clamp(Mathf.RoundToInt(tournamentSizeSlider.value), 2, populationSize);
+        if (elitismSlider != null)
+            elitism = Mathf.Clamp(Mathf.RoundToInt(elitismSlider.value), 0, populationSize);
+
         System.Random random = new System.Random();
 
-        // TODO 1: Crear population con CreateInitialPopulation(...)
-        // TODO 2: Evaluar la población inicial.
-        // TODO 3: Repetir el ciclo evolutivo durante "generations".
-        //
-        // Dentro de cada generación:
-        // - ordenar por fitness
-        // - conservar elite
-        // - seleccionar padres
-        // - realizar crossover
-        // - mutar
-        // - evaluar hijos
-        // - completar nextPopulation
-        // - reemplazar population
+        List<PokemonTeamCandidate> population =
+            CreateInitialPopulation(dataset.Count, config, random);
+        EvaluatePopulation(population, dataset, config);
+        population.Sort((a, b) => b.fitness.CompareTo(a.fitness));
 
-        Debug.LogWarning(
-            "[GeneticAlgorithm] TODO: implementar Generate()."
-        );
+        int eliteCount = Mathf.Clamp(elitism, 0, population.Count);
 
-        return null;
+        for (int generation = 0; generation < generations; generation++)
+        {
+            List<PokemonTeamCandidate> nextPopulation =
+                new List<PokemonTeamCandidate>(population.Count);
+
+            // Copiar los mejores protege sus genes de las mutaciones de los hijos.
+            for (int i = 0; i < eliteCount; i++)
+                nextPopulation.Add(population[i].Clone());
+
+            while (nextPopulation.Count < population.Count)
+            {
+                PokemonTeamCandidate parentA = TournamentSelection(population, random);
+                PokemonTeamCandidate parentB = TournamentSelection(population, random);
+
+                PokemonTeamCandidate child = random.NextDouble() < crossoverRate
+                    ? Crossover(parentA, parentB, random)
+                    : parentA.Clone();
+
+                Mutate(child, dataset.Count, random);
+                PokemonTeamFitness.Evaluate(child, dataset, config);
+                nextPopulation.Add(child);
+            }
+
+            population = nextPopulation;
+            population.Sort((a, b) => b.fitness.CompareTo(a.fitness));
+
+            if (logProgress)
+            {
+                Debug.Log(
+                    $"[GeneticAlgorithm] Generation {generation + 1}/{generations}: " +
+                    $"best fitness = {population[0].fitness:0.000}"
+                );
+            }
+        }
+
+        // La selección entregada permite variar el contenido entre equipos válidos.
+        return PokemonTeamFitness.SelectGeneratedContent(population, config, random);
     }
 
     /*
@@ -199,8 +253,20 @@ public class GeneticAlgorithm : MonoBehaviour
         PokemonTeamGenerationConfig config,
         System.Random random)
     {
-        // TODO
-        return null;
+        int count = Mathf.Max(2, populationSize);
+        List<PokemonTeamCandidate> population = new List<PokemonTeamCandidate>(count);
+
+        for (int i = 0; i < count; i++)
+        {
+            PokemonTeamCandidate candidate = new PokemonTeamCandidate(config.teamSize);
+
+            for (int gene = 0; gene < candidate.genes.Length; gene++)
+                candidate.genes[gene] = random.Next(datasetSize);
+
+            population.Add(candidate);
+        }
+
+        return population;
     }
 
     /*
@@ -229,8 +295,17 @@ public class GeneticAlgorithm : MonoBehaviour
         List<PokemonTeamCandidate> population,
         System.Random random)
     {
-        // TODO
-        return null;
+        PokemonTeamCandidate best = null;
+
+        for (int i = 0; i < Mathf.Max(2, tournamentSize); i++)
+        {
+            PokemonTeamCandidate candidate = population[random.Next(population.Count)];
+
+            if (best == null || candidate.fitness > best.fitness)
+                best = candidate;
+        }
+
+        return best;
     }
 
     /*
@@ -265,8 +340,23 @@ public class GeneticAlgorithm : MonoBehaviour
         PokemonTeamCandidate parentB,
         System.Random random)
     {
-        // TODO
-        return null;
+        int geneCount = parentA.genes.Length;
+
+        // Un equipo de un solo integrante no tiene un punto de corte interno.
+        if (geneCount < 2)
+            return parentA.Clone();
+
+        PokemonTeamCandidate child = new PokemonTeamCandidate(geneCount);
+        int crossoverPoint = random.Next(1, geneCount);
+
+        for (int i = 0; i < geneCount; i++)
+        {
+            child.genes[i] = i < crossoverPoint
+                ? parentA.genes[i]
+                : parentB.genes[i];
+        }
+
+        return child;
     }
 
     /*
@@ -294,7 +384,21 @@ public class GeneticAlgorithm : MonoBehaviour
         int datasetSize,
         System.Random random)
     {
-        // TODO
+        if (datasetSize < 2)
+            return;
+
+        for (int i = 0; i < candidate.genes.Length; i++)
+        {
+            if (random.NextDouble() < mutationRate)
+            {
+                // Elegir otro índice sin reintentos y sin modificar a los padres.
+                int replacement = random.Next(datasetSize - 1);
+                if (replacement >= candidate.genes[i])
+                    replacement++;
+
+                candidate.genes[i] = replacement;
+            }
+        }
     }
 
     private void EvaluatePopulation(
