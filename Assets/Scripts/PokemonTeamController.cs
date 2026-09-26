@@ -338,8 +338,6 @@ public class PokemonTeamController : MonoBehaviour
 
     public void GenerateTeam()
     {
-        SetGenerationMethod(0);
-
         if (loader == null)
         {
             Debug.LogError("[PokemonTeamController] Loader not assigned.");
@@ -364,6 +362,7 @@ public class PokemonTeamController : MonoBehaviour
             case TeamGenerationMethod.GeneticAlgorithm:
                 if (geneticAlgorithm == null)
                 {
+                    Debug.LogError("[PokemonTeamController] GeneticAlgorithm not assigned.");
                     if (statusText != null) statusText.text = "Falta asignar el algoritmo genetico.";
                     return;
                 }
@@ -373,7 +372,11 @@ public class PokemonTeamController : MonoBehaviour
 
             case TeamGenerationMethod.EvolutionaryStrategy:
                 if (evolutionaryStrategy == null)
+                {
+                    Debug.LogError("[PokemonTeamController] EvolutionaryStrategy not assigned.");
+                    if (statusText != null) statusText.text = "Falta asignar la estrategia evolutiva.";
                     return;
+                }
 
                 result = evolutionaryStrategy.Generate(loader.Data, config);
                 break;
@@ -389,19 +392,40 @@ public class PokemonTeamController : MonoBehaviour
         DisplayTeam(result);
     }
 
+    /*
+     * Llamado por los botones de método:
+     * Genetic -> 0
+     * ES      -> 1
+     *
+     * Solo cambia el algoritmo. Los sliders deben llamar a
+     * UpdateParameters() para no cambiar el método por accidente.
+     */
     public void SetGenerationMethod(int value)
     {
-        // Esta entrega habilita únicamente GA. Los sliders reutilizan este evento
-        // para actualizar sus etiquetas sin añadir métodos a la plantilla.
-        generationMethod = TeamGenerationMethod.GeneticAlgorithm;
-        if (value != 0)
-        {
-            if (statusText != null) statusText.text = "Estrategia evolutiva aun no disponible.";
-            return;
-        }
+        Debug.Log($"[PokemonTeamController] SetGenerationMethod recibió: {value}");
 
+        if (value == 0)
+            generationMethod = TeamGenerationMethod.GeneticAlgorithm;
+        else if (value == 1)
+            generationMethod = TeamGenerationMethod.EvolutionaryStrategy;
+
+        UpdateParameters();
+
+        // Muestra de inmediato qué método quedó seleccionado
+        if (methodText != null)
+            methodText.text = GetMethodLabel();
+    }
+
+    /*
+     * Llamado por los sliders (On Value Changed).
+     * Lee los sliders de condiciones, actualiza config
+     * y refresca las etiquetas numéricas.
+     */
+    public void UpdateParameters()
+    {
         if (minAverageBSTSlider != null)
             config.minAverageBST = Mathf.RoundToInt(minAverageBSTSlider.value);
+
         if (maxAverageBSTSlider != null)
         {
             config.maxAverageBST = Mathf.RoundToInt(maxAverageBSTSlider.value);
@@ -411,8 +435,10 @@ public class PokemonTeamController : MonoBehaviour
                 maxAverageBSTSlider.SetValueWithoutNotify(config.maxAverageBST);
             }
         }
+
         if (targetUniqueTypesSlider != null)
             config.targetUniqueTypes = Mathf.RoundToInt(targetUniqueTypesSlider.value);
+
         if (outputFitnessThresholdSlider != null)
             config.outputFitnessThreshold = outputFitnessThresholdSlider.value;
 
@@ -425,7 +451,13 @@ public class PokemonTeamController : MonoBehaviour
                 label.text = slider.value.ToString(slider.wholeNumbers ? "0" : "0.00");
         }
 
-        if (statusText != null) statusText.text = "Pulsa Generar para aplicar los parametros.";
+        if (statusText != null)
+            statusText.text = "Pulsa Generar para aplicar los parametros.";
+    }
+
+    private string GetMethodLabel()
+    {
+        return generationMethod == TeamGenerationMethod.EvolutionaryStrategy ? "ES" : "GA";
     }
 
     private void DisplayTeam(PokemonTeamCandidate team)
@@ -469,7 +501,7 @@ public class PokemonTeamController : MonoBehaviour
             }
         }
 
-        if (methodText != null) methodText.text = "GA";
+        if (methodText != null) methodText.text = GetMethodLabel();
         if (fitnessText != null) fitnessText.text = team.fitness.ToString("0.000");
         if (powerText != null) powerText.text = team.powerScore.ToString("0.000");
         if (diversityText != null) diversityText.text = team.diversityScore.ToString("0.000");
