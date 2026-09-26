@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Security.Cryptography;
 using UnityEngine;
 
 public class EvolutionaryStrategy : MonoBehaviour
@@ -119,8 +121,38 @@ public class EvolutionaryStrategy : MonoBehaviour
         System.Random random = new System.Random();
 
         // TODO 1: Crear "mu" padres aleatorios.
+        List<PokemonTeamCandidate> parents = CreateInitialParents(mu, dataset.Count, config, random);
         // TODO 2: Evaluar padres.
+        EvaluatePopulation(parents,dataset,config);
+
         // TODO 3: Repetir durante "generations".
+        for (int i = 0; i < generations; i++)
+        {
+            List<PokemonTeamCandidate> offsprings = new List<PokemonTeamCandidate>();
+            for (int j = 0; j < lambda; j++)
+            {
+                int randomParent = random.Next(parents.Count);
+                PokemonTeamCandidate chosenParent = parents[randomParent];
+                PokemonTeamCandidate child = chosenParent.Clone();
+                Mutate(child, dataset.Count, random);
+                PokemonTeamFitness.Evaluate(child, dataset, config);
+                offsprings.Add(child);
+            }
+
+            List<PokemonTeamCandidate> combined = new List<PokemonTeamCandidate>();
+            combined.AddRange(parents);
+            combined.AddRange(offsprings);
+
+            combined.Sort((a, b) => b.fitness.CompareTo(a.fitness));
+            List<PokemonTeamCandidate> bestCandidates = new List<PokemonTeamCandidate>();
+            for (int k = 0; k < mu; k++)
+            {
+                bestCandidates.Add(combined[k]);
+            }
+            parents = bestCandidates;
+        }
+        return PokemonTeamFitness.SelectGeneratedContent(parents, config, random);
+
         //
         // En cada generación:
         // - crear lambda hijos
@@ -134,11 +166,6 @@ public class EvolutionaryStrategy : MonoBehaviour
         // ordenar combined por fitness
         // conservar solamente los mejores "mu"
 
-        Debug.LogWarning(
-            "[EvolutionaryStrategy] TODO: implementar Generate()."
-        );
-
-        return null;
     }
 
     /*
@@ -170,7 +197,19 @@ public class EvolutionaryStrategy : MonoBehaviour
         System.Random random)
     {
         // TODO
-        return null;
+        List<PokemonTeamCandidate> parents = new List<PokemonTeamCandidate>();
+        for (int i = 0; i < parentCount; i++)
+        {
+            PokemonTeamCandidate candidate = new PokemonTeamCandidate(config.teamSize);
+
+            for(int j = 0; j < candidate.genes.Length; j++)
+            {
+                int randomIndex = random.Next(0,datasetSize);
+                candidate.genes[j] = randomIndex;
+            }
+            parents.Add(candidate);
+        }
+        return parents;
     }
 
     /*
@@ -206,6 +245,23 @@ public class EvolutionaryStrategy : MonoBehaviour
         int datasetSize,
         System.Random random)
     {
+        bool mutated = false;
+
+        for(int i = 0; i < candidate.genes.Length;i++)
+        {
+            
+            double randomMutation = random.NextDouble();
+            if (randomMutation < mutationRate)
+            {
+                candidate.genes[i] = RandomDifferentPokemon(candidate.genes[i], datasetSize, random);
+                mutated = true;
+            }
+        }
+        if(!mutated)
+        {
+            int randomGene = random.Next(0, candidate.genes.Length);
+            candidate.genes[randomGene] = RandomDifferentPokemon(candidate.genes[randomGene], datasetSize, random);
+        }
         // TODO
     }
 
@@ -226,7 +282,12 @@ public class EvolutionaryStrategy : MonoBehaviour
         System.Random random)
     {
         // TODO
-        return current;
+        int randomIndex = random.Next(0, datasetSize);
+        while(randomIndex == current)
+        {
+            randomIndex = random.Next(0, datasetSize);
+        }
+        return randomIndex;
     }
 
     private void EvaluatePopulation(

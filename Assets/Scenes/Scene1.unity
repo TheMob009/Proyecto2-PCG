@@ -9923,7 +9923,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: ES (pendiente)
+  m_text: 'ES
+
+
+'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 2253d5033873fe4498e61a7ea085807a, type: 2}
   m_sharedMaterial: {fileID: -3756100568494227173, guid: 2253d5033873fe4498e61a7ea085807a,
@@ -13720,11 +13723,23 @@ MonoBehaviour:
     m_PressedTrigger: Pressed
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
-  m_Interactable: 0
+  m_Interactable: 1
   m_TargetGraphic: {fileID: 1469601504}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1612136898}
+        m_TargetAssemblyTypeName: PokemonTeamController, Assembly-CSharp
+        m_MethodName: SetGenerationMethod
+        m_Mode: 3
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 1
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1469601504
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -15157,7 +15172,7 @@ MonoBehaviour:
   loader: {fileID: 1612136899}
   geneticAlgorithm: {fileID: 1612136897}
   evolutionaryStrategy: {fileID: 1612136896}
-  generationMethod: 0
+  generationMethod: 1
   config:
     teamSize: 6
     minAverageBST: 450
