@@ -305,6 +305,10 @@ public class PokemonTeamController : MonoBehaviour
     [SerializeField]
     private TeamGenerationMethod generationMethod = TeamGenerationMethod.GeneticAlgorithm;
 
+    [Header("Algorithm Panels")]
+    [SerializeField] private GameObject geneticParametersLayout;
+    [SerializeField] private GameObject evolutionaryParametersLayout;
+
     [Header("Content Configuration")]
     [SerializeField]
     private PokemonTeamGenerationConfig config = new PokemonTeamGenerationConfig();
@@ -397,7 +401,7 @@ public class PokemonTeamController : MonoBehaviour
      * Genetic -> 0
      * ES      -> 1
      *
-     * Solo cambia el algoritmo. Los sliders deben llamar a
+     * Cambia el algoritmo y muestra su panel. Los sliders deben llamar a
      * UpdateParameters() para no cambiar el método por accidente.
      */
     public void SetGenerationMethod(int value)
@@ -408,6 +412,12 @@ public class PokemonTeamController : MonoBehaviour
             generationMethod = TeamGenerationMethod.GeneticAlgorithm;
         else if (value == 1)
             generationMethod = TeamGenerationMethod.EvolutionaryStrategy;
+
+        bool useGeneticAlgorithm = generationMethod == TeamGenerationMethod.GeneticAlgorithm;
+        if (geneticParametersLayout != null)
+            geneticParametersLayout.SetActive(useGeneticAlgorithm);
+        if (evolutionaryParametersLayout != null)
+            evolutionaryParametersLayout.SetActive(!useGeneticAlgorithm);
 
         UpdateParameters();
 

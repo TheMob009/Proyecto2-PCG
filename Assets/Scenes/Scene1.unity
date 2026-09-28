@@ -7208,7 +7208,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &797572253
 RectTransform:
   m_ObjectHideFlags: 0
@@ -13796,7 +13796,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1474356361
 RectTransform:
   m_ObjectHideFlags: 0
@@ -15173,6 +15173,8 @@ MonoBehaviour:
   geneticAlgorithm: {fileID: 1612136897}
   evolutionaryStrategy: {fileID: 1612136896}
   generationMethod: 1
+  geneticParametersLayout: {fileID: 797572252}
+  evolutionaryParametersLayout: {fileID: 1474356360}
   config:
     teamSize: 6
     minAverageBST: 450
@@ -16070,7 +16072,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: GA
+  m_text: ES
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 2253d5033873fe4498e61a7ea085807a, type: 2}
   m_sharedMaterial: {fileID: -3756100568494227173, guid: 2253d5033873fe4498e61a7ea085807a,
