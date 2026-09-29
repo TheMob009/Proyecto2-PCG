@@ -342,8 +342,6 @@ public class PokemonTeamController : MonoBehaviour
 
     public void GenerateTeam()
     {
-        SetGenerationMethod(0);
-
         if (loader == null)
         {
             Debug.LogError("[PokemonTeamController] Loader not assigned.");
@@ -393,7 +391,6 @@ public class PokemonTeamController : MonoBehaviour
         DisplayTeam(result);
     }
 
-<<<<<<< HEAD
     /*
      * Llamado por los botones de método:
      * Genetic -> 0
@@ -402,20 +399,10 @@ public class PokemonTeamController : MonoBehaviour
      * Cambia el algoritmo y muestra su panel. Los sliders deben llamar a
      * UpdateParameters() para no cambiar el método por accidente.
      */
-=======
->>>>>>> parent of c799f79 (UI Update)
     public void SetGenerationMethod(int value)
     {
-        // Esta entrega habilita únicamente GA. Los sliders reutilizan este evento
-        // para actualizar sus etiquetas sin añadir métodos a la plantilla.
-        generationMethod = TeamGenerationMethod.GeneticAlgorithm;
-        if (value != 0)
-        {
-            if (statusText != null) statusText.text = "Estrategia evolutiva aun no disponible.";
-            return;
-        }
+        Debug.Log($"[PokemonTeamController] SetGenerationMethod recibió: {value}");
 
-<<<<<<< HEAD
         if (value == 0)
             generationMethod = TeamGenerationMethod.GeneticAlgorithm;
         else if (value == 1)
@@ -441,8 +428,6 @@ public class PokemonTeamController : MonoBehaviour
      */
     public void UpdateParameters()
     {
-=======
->>>>>>> parent of c799f79 (UI Update)
         if (minAverageBSTSlider != null)
             config.minAverageBST = Mathf.RoundToInt(minAverageBSTSlider.value);
         if (maxAverageBSTSlider != null)
@@ -469,6 +454,11 @@ public class PokemonTeamController : MonoBehaviour
         }
 
         if (statusText != null) statusText.text = "Pulsa Generar para aplicar los parametros.";
+    }
+
+    private string GetMethodLabel()
+    {
+        return generationMethod == TeamGenerationMethod.EvolutionaryStrategy ? "ES" : "GA";
     }
 
     private void DisplayTeam(PokemonTeamCandidate team)
@@ -512,7 +502,7 @@ public class PokemonTeamController : MonoBehaviour
             }
         }
 
-        if (methodText != null) methodText.text = "GA";
+        if (methodText != null) methodText.text = GetMethodLabel();
         if (fitnessText != null) fitnessText.text = team.fitness.ToString("0.000");
         if (powerText != null) powerText.text = team.powerScore.ToString("0.000");
         if (diversityText != null) diversityText.text = team.diversityScore.ToString("0.000");
