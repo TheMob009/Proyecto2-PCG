@@ -133,7 +133,7 @@ public class EvolutionaryStrategy : MonoBehaviour
             {
                 int randomParent = random.Next(parents.Count);
                 PokemonTeamCandidate chosenParent = parents[randomParent];
-                PokemonTeamCandidate child = chosenParent.Clone();
+                PokemonTeamCandidate child = chosenParent.Clone();//se hace un clon para no editar el padre
                 Mutate(child, dataset.Count, random);
                 PokemonTeamFitness.Evaluate(child, dataset, config);
                 offsprings.Add(child);
@@ -197,14 +197,19 @@ public class EvolutionaryStrategy : MonoBehaviour
         System.Random random)
     {
         // TODO
+        //Lista de los padres 
         List<PokemonTeamCandidate> parents = new List<PokemonTeamCandidate>();
+     
         for (int i = 0; i < parentCount; i++)
         {
+            
             PokemonTeamCandidate candidate = new PokemonTeamCandidate(config.teamSize);
 
             for(int j = 0; j < candidate.genes.Length; j++)
             {
+
                 int randomIndex = random.Next(0,datasetSize);
+                //Se asigna un indice aleatorio en cada gen
                 candidate.genes[j] = randomIndex;
             }
             parents.Add(candidate);
@@ -253,12 +258,14 @@ public class EvolutionaryStrategy : MonoBehaviour
             double randomMutation = random.NextDouble();
             if (randomMutation < mutationRate)
             {
+                //Si el randommutation es menor al mutation rate se reemplaza el gen con otro pokemon
                 candidate.genes[i] = RandomDifferentPokemon(candidate.genes[i], datasetSize, random);
                 mutated = true;
             }
         }
         if(!mutated)
         {
+            //En caso de no mutar se elije un gen al azar y se reemplaza.
             int randomGene = random.Next(0, candidate.genes.Length);
             candidate.genes[randomGene] = RandomDifferentPokemon(candidate.genes[randomGene], datasetSize, random);
         }
