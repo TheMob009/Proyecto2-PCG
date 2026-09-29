@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Security.Cryptography;
 using UnityEngine;
 
 public class EvolutionaryStrategy : MonoBehaviour
@@ -48,7 +50,6 @@ public class EvolutionaryStrategy : MonoBehaviour
     [SerializeField] private float mutationRate = 0.20f;
 
     [Header("Debug")]
-    [Tooltip("Si está activo, muestra una línea por generación en la consola.")]
     [SerializeField] private bool logProgress = true;
 
     /*
@@ -83,65 +84,57 @@ public class EvolutionaryStrategy : MonoBehaviour
      * 13:     keep best mu individuals as new parents
      *
      * 14: select generated content from final parents
+     *
+     * EJEMPLO
+     * ------------------------------------------------------------
+     * mu = 2
+     * lambda = 3
+     *
+     * parents:
+     * A -> fitness 0.80
+     * B -> fitness 0.72
+     *
+     * offspring:
+     * C -> fitness 0.88
+     * D -> fitness 0.65
+     * E -> fitness 0.91
+     *
+     * combined = [A, B, C, D, E]
+     *
+     * ordenado:
+     * E = 0.91
+     * C = 0.88
+     * A = 0.80
+     * B = 0.72
+     * D = 0.65
+     *
+     * Como mu = 2:
+     * newParents = [E, C]
      */
     public PokemonTeamCandidate Generate(
         IReadOnlyList<PokemonData> dataset,
         PokemonTeamGenerationConfig config)
     {
-        // Si esta línea NO aparece en la consola, el problema está en el
-        // controlador o en la UI: nunca se llamó a este método.
-        Debug.Log("[ES] ===== Generate() llamado =====");
-
         if (dataset == null || dataset.Count == 0)
-        {
-            Debug.LogError("[ES] Dataset nulo o vacío. No se puede generar.");
             return null;
-        }
 
-        System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
         System.Random random = new System.Random();
 
-        Debug.Log(
-            $"[ES] Parámetros -> mu: {mu}, lambda: {lambda}, generations: {generations}, " +
-            $"mutationRate: {mutationRate:0.00}\n" +
-            $"[ES] Config -> teamSize: {config.teamSize}, " +
-            $"BST objetivo: {config.minAverageBST}-{config.maxAverageBST}, " +
-            $"tipos objetivo: {config.targetUniqueTypes}, " +
-            $"umbral fitness: {config.outputFitnessThreshold:0.00}\n" +
-            $"[ES] Dataset: {dataset.Count} Pokémon"
-        );
-
-        // 1: Crear "mu" padres aleatorios.
+        // TODO 1: Crear "mu" padres aleatorios.
         List<PokemonTeamCandidate> parents = CreateInitialParents(mu, dataset.Count, config, random);
-        Debug.Log($"[ES] Padres iniciales creados: {parents.Count} (esperado: {mu})");
+        // TODO 2: Evaluar padres.
+        EvaluatePopulation(parents,dataset,config);
 
-        // 2: Evaluar padres.
-        EvaluatePopulation(parents, dataset, config);
-        LogPopulationStats("Padres iniciales", parents);
-        LogBestTeam("Mejor padre inicial", parents, dataset);
-
-        float initialBest = GetBestFitness(parents);
-
-        // 3: Repetir durante "generations".
+        // TODO 3: Repetir durante "generations".
         for (int i = 0; i < generations; i++)
         {
             List<PokemonTeamCandidate> offsprings = new List<PokemonTeamCandidate>();
-            int totalChangedGenes = 0;
-
             for (int j = 0; j < lambda; j++)
             {
                 int randomParent = random.Next(parents.Count);
                 PokemonTeamCandidate chosenParent = parents[randomParent];
                 PokemonTeamCandidate child = chosenParent.Clone();
                 Mutate(child, dataset.Count, random);
-
-                // Verifica que la mutación realmente haya cambiado algo
-                int changedGenes = CountChangedGenes(chosenParent, child);
-                totalChangedGenes += changedGenes;
-
-                if (changedGenes == 0)
-                    Debug.LogError($"[ES] Gen {i + 1}, hijo {j}: la mutación no cambió ningún gen.");
-
                 PokemonTeamFitness.Evaluate(child, dataset, config);
                 offsprings.Add(child);
             }
@@ -150,87 +143,43 @@ public class EvolutionaryStrategy : MonoBehaviour
             combined.AddRange(parents);
             combined.AddRange(offsprings);
 
-            if (combined.Count != mu + lambda)
-            {
-                Debug.LogError(
-                    $"[ES] Gen {i + 1}: combined tiene {combined.Count} elementos, " +
-                    $"se esperaban {mu + lambda}."
-                );
-            }
-
             combined.Sort((a, b) => b.fitness.CompareTo(a.fitness));
-
             List<PokemonTeamCandidate> bestCandidates = new List<PokemonTeamCandidate>();
             for (int k = 0; k < mu; k++)
             {
                 bestCandidates.Add(combined[k]);
             }
-
-            // Cuántos de los nuevos padres son hijos de esta generación.
-            // Si siempre es 0, los hijos nunca superan a los padres.
-            HashSet<PokemonTeamCandidate> offspringSet = new HashSet<PokemonTeamCandidate>(offsprings);
-            int survivingChildren = 0;
-            foreach (PokemonTeamCandidate candidate in bestCandidates)
-            {
-                if (offspringSet.Contains(candidate))
-                    survivingChildren++;
-            }
-
             parents = bestCandidates;
-
-            if (logProgress)
-            {
-                Debug.Log(
-                    $"[ES] Gen {i + 1}/{generations} | " +
-                    $"mejor: {parents[0].fitness:0.000} | " +
-                    $"promedio: {GetAverageFitness(parents):0.000} | " +
-                    $"peor: {parents[parents.Count - 1].fitness:0.000} | " +
-                    $"hijos que sobrevivieron: {survivingChildren}/{mu} | " +
-                    $"genes mutados por hijo: {(float)totalChangedGenes / lambda:0.00}"
-                );
-            }
         }
+        return PokemonTeamFitness.SelectGeneratedContent(parents, config, random);
 
-        // Resumen final de la evolución
-        LogPopulationStats("Padres finales", parents);
-        LogBestTeam("Mejor padre final", parents, dataset);
+        //
+        // En cada generación:
+        // - crear lambda hijos
+        // - elegir un padre aleatorio para cada hijo
+        // - copiarlo
+        // - mutarlo
+        // - evaluarlo
+        //
+        // Después:
+        // combined = parents + offspring
+        // ordenar combined por fitness
+        // conservar solamente los mejores "mu"
 
-        float finalBest = GetBestFitness(parents);
-        Debug.Log(
-            $"[ES] Mejora del mejor fitness: {initialBest:0.000} -> {finalBest:0.000} " +
-            $"(diferencia: {finalBest - initialBest:0.000})"
-        );
-
-        int aboveThreshold = 0;
-        foreach (PokemonTeamCandidate candidate in parents)
-        {
-            if (candidate.fitness >= config.outputFitnessThreshold)
-                aboveThreshold++;
-        }
-        Debug.Log(
-            $"[ES] Padres que superan el umbral {config.outputFitnessThreshold:0.00}: " +
-            $"{aboveThreshold}/{parents.Count}"
-        );
-
-        // 14: Seleccionar el contenido generado.
-        PokemonTeamCandidate result = PokemonTeamFitness.SelectGeneratedContent(parents, config, random);
-
-        stopwatch.Stop();
-
-        if (result == null)
-            Debug.LogError("[ES] SelectGeneratedContent devolvió null.");
-        else
-            LogTeamDetails("Equipo entregado a la UI", result, dataset);
-
-        Debug.Log($"[ES] ===== Generate() terminado en {stopwatch.ElapsedMilliseconds} ms =====");
-
-        return result;
     }
 
     /*
      * ============================================================
      * CREAR PADRES INICIALES
      * ============================================================
+     *
+     * mu = 15
+     * teamSize = 6
+     *
+     * parents.Count = 15
+     *
+     * Cada padre puede verse así:
+     * [25, 131, 94, 212, 135, 445]
      *
      * PSEUDOCÓDIGO
      * ------------------------------------------------------------
@@ -247,14 +196,15 @@ public class EvolutionaryStrategy : MonoBehaviour
         PokemonTeamGenerationConfig config,
         System.Random random)
     {
+        // TODO
         List<PokemonTeamCandidate> parents = new List<PokemonTeamCandidate>();
         for (int i = 0; i < parentCount; i++)
         {
             PokemonTeamCandidate candidate = new PokemonTeamCandidate(config.teamSize);
 
-            for (int j = 0; j < candidate.genes.Length; j++)
+            for(int j = 0; j < candidate.genes.Length; j++)
             {
-                int randomIndex = random.Next(0, datasetSize);
+                int randomIndex = random.Next(0,datasetSize);
                 candidate.genes[j] = randomIndex;
             }
             parents.Add(candidate);
@@ -267,6 +217,15 @@ public class EvolutionaryStrategy : MonoBehaviour
      * MUTACIÓN
      * ============================================================
      *
+     * Padre:
+     * [25, 131, 94, 212, 135, 445]
+     *
+     * Copia:
+     * [25, 131, 94, 212, 135, 445]
+     *
+     * Después de mutar:
+     * [25, 131, 700, 212, 135, 445]
+     *
      * PSEUDOCÓDIGO
      * ------------------------------------------------------------
      * 1: mutated = false
@@ -278,6 +237,8 @@ public class EvolutionaryStrategy : MonoBehaviour
      * 6: if no gene was mutated:
      * 7:      choose one random gene
      * 8:      replace it with another Pokemon
+     *
+     * Queremos asegurar que cada hijo tenga al menos una variación.
      */
     private void Mutate(
         PokemonTeamCandidate candidate,
@@ -286,8 +247,9 @@ public class EvolutionaryStrategy : MonoBehaviour
     {
         bool mutated = false;
 
-        for (int i = 0; i < candidate.genes.Length; i++)
+        for(int i = 0; i < candidate.genes.Length;i++)
         {
+            
             double randomMutation = random.NextDouble();
             if (randomMutation < mutationRate)
             {
@@ -295,25 +257,33 @@ public class EvolutionaryStrategy : MonoBehaviour
                 mutated = true;
             }
         }
-
-        if (!mutated)
+        if(!mutated)
         {
             int randomGene = random.Next(0, candidate.genes.Length);
             candidate.genes[randomGene] = RandomDifferentPokemon(candidate.genes[randomGene], datasetSize, random);
         }
+        // TODO
     }
 
     /*
-     * Retorna un índice diferente al actual,
-     * entre 0 y datasetSize - 1.
+     * Retorna un índice diferente al actual.
+     *
+     * current = 94
+     * datasetSize = 1032
+     *
+     * resultado posible = 700
+     *
+     * Debe estar entre 0 y datasetSize - 1
+     * y no debe ser igual a current.
      */
     private int RandomDifferentPokemon(
         int current,
         int datasetSize,
         System.Random random)
     {
+        // TODO
         int randomIndex = random.Next(0, datasetSize);
-        while (randomIndex == current)
+        while(randomIndex == current)
         {
             randomIndex = random.Next(0, datasetSize);
         }
@@ -329,110 +299,5 @@ public class EvolutionaryStrategy : MonoBehaviour
         {
             PokemonTeamFitness.Evaluate(candidate, dataset, config);
         }
-    }
-
-    /*
-     * ============================================================
-     * MÉTODOS DE DEBUG
-     * ============================================================
-     */
-
-    private float GetBestFitness(List<PokemonTeamCandidate> population)
-    {
-        float best = float.MinValue;
-        foreach (PokemonTeamCandidate candidate in population)
-        {
-            if (candidate.fitness > best)
-                best = candidate.fitness;
-        }
-        return best;
-    }
-
-    private float GetAverageFitness(List<PokemonTeamCandidate> population)
-    {
-        if (population.Count == 0)
-            return 0f;
-
-        float sum = 0f;
-        foreach (PokemonTeamCandidate candidate in population)
-        {
-            sum += candidate.fitness;
-        }
-        return sum / population.Count;
-    }
-
-    private int CountChangedGenes(PokemonTeamCandidate before, PokemonTeamCandidate after)
-    {
-        int changed = 0;
-        for (int i = 0; i < before.genes.Length; i++)
-        {
-            if (before.genes[i] != after.genes[i])
-                changed++;
-        }
-        return changed;
-    }
-
-    private void LogPopulationStats(string label, List<PokemonTeamCandidate> population)
-    {
-        if (population == null || population.Count == 0)
-        {
-            Debug.LogWarning($"[ES] {label}: población vacía.");
-            return;
-        }
-
-        float best = float.MinValue;
-        float worst = float.MaxValue;
-        foreach (PokemonTeamCandidate candidate in population)
-        {
-            if (candidate.fitness > best) best = candidate.fitness;
-            if (candidate.fitness < worst) worst = candidate.fitness;
-        }
-
-        Debug.Log(
-            $"[ES] {label} ({population.Count}) -> " +
-            $"mejor: {best:0.000} | promedio: {GetAverageFitness(population):0.000} | peor: {worst:0.000}"
-        );
-    }
-
-    private void LogBestTeam(
-        string label,
-        List<PokemonTeamCandidate> population,
-        IReadOnlyList<PokemonData> dataset)
-    {
-        if (population == null || population.Count == 0)
-            return;
-
-        PokemonTeamCandidate best = population[0];
-        foreach (PokemonTeamCandidate candidate in population)
-        {
-            if (candidate.fitness > best.fitness)
-                best = candidate;
-        }
-
-        LogTeamDetails(label, best, dataset);
-    }
-
-    private void LogTeamDetails(
-        string label,
-        PokemonTeamCandidate team,
-        IReadOnlyList<PokemonData> dataset)
-    {
-        List<string> names = new List<string>();
-        foreach (int gene in team.genes)
-        {
-            if (gene >= 0 && gene < dataset.Count)
-                names.Add(dataset[gene].name);
-            else
-                names.Add($"<índice inválido {gene}>");
-        }
-
-        Debug.Log(
-            $"[ES] {label}:\n" +
-            $"  Genes: [{string.Join(", ", team.genes)}]\n" +
-            $"  Pokémon: {string.Join(", ", names)}\n" +
-            $"  Fitness: {team.fitness:0.000} | Poder: {team.powerScore:0.000} | Diversidad: {team.diversityScore:0.000}\n" +
-            $"  BST promedio: {team.averageBST:0.0} | Únicos: {team.uniquePokemon}/{team.genes.Length} | " +
-            $"Tipos: {team.uniqueTypes} | Roles: {team.uniqueRoles}/3"
-        );
     }
 }
