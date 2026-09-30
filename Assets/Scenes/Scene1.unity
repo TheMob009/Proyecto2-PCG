@@ -618,8 +618,8 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1612136898}
         m_TargetAssemblyTypeName: PokemonTeamController, Assembly-CSharp
-        m_MethodName: SetGenerationMethod
-        m_Mode: 3
+        m_MethodName: UpdateParameters
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -933,8 +933,8 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1612136898}
         m_TargetAssemblyTypeName: PokemonTeamController, Assembly-CSharp
-        m_MethodName: SetGenerationMethod
-        m_Mode: 3
+        m_MethodName: UpdateParameters
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -2164,8 +2164,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 161, y: 10.5}
-  m_SizeDelta: {x: 16, y: 33.173}
+  m_AnchoredPosition: {x: 135, y: 17}
+  m_SizeDelta: {x: 80, y: 33.173}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &278581363
 MonoBehaviour:
@@ -2218,11 +2218,11 @@ MonoBehaviour:
   m_fontSize: 36
   m_fontSizeBase: 36
   m_fontWeight: 400
-  m_enableAutoSizing: 0
+  m_enableAutoSizing: 1
   m_fontSizeMin: 18
-  m_fontSizeMax: 72
+  m_fontSizeMax: 36
   m_fontStyle: 0
-  m_HorizontalAlignment: 2
+  m_HorizontalAlignment: 4
   m_VerticalAlignment: 4096
   m_textAlignment: 65535
   m_characterSpacing: 0
@@ -2231,7 +2231,7 @@ MonoBehaviour:
   m_lineSpacingMax: 0
   m_paragraphSpacing: 0
   m_charWidthMaxAdj: 0
-  m_enableWordWrapping: 1
+  m_enableWordWrapping: 0
   m_wordWrappingRatios: 0.4
   m_overflowMode: 0
   m_linkedTextComponent: {fileID: 0}
@@ -3083,8 +3083,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 161, y: 10.5}
-  m_SizeDelta: {x: 16, y: 33.173}
+  m_AnchoredPosition: {x: 135, y: 17}
+  m_SizeDelta: {x: 80, y: 33.173}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &381260345
 MonoBehaviour:
@@ -3137,11 +3137,11 @@ MonoBehaviour:
   m_fontSize: 36
   m_fontSizeBase: 36
   m_fontWeight: 400
-  m_enableAutoSizing: 0
+  m_enableAutoSizing: 1
   m_fontSizeMin: 18
-  m_fontSizeMax: 72
+  m_fontSizeMax: 36
   m_fontStyle: 0
-  m_HorizontalAlignment: 2
+  m_HorizontalAlignment: 4
   m_VerticalAlignment: 4096
   m_textAlignment: 65535
   m_characterSpacing: 0
@@ -3150,7 +3150,7 @@ MonoBehaviour:
   m_lineSpacingMax: 0
   m_paragraphSpacing: 0
   m_charWidthMaxAdj: 0
-  m_enableWordWrapping: 1
+  m_enableWordWrapping: 0
   m_wordWrappingRatios: 0.4
   m_overflowMode: 0
   m_linkedTextComponent: {fileID: 0}
@@ -3582,8 +3582,8 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1612136898}
         m_TargetAssemblyTypeName: PokemonTeamController, Assembly-CSharp
-        m_MethodName: SetGenerationMethod
-        m_Mode: 3
+        m_MethodName: UpdateParameters
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -5645,8 +5645,8 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1612136898}
         m_TargetAssemblyTypeName: PokemonTeamController, Assembly-CSharp
-        m_MethodName: SetGenerationMethod
-        m_Mode: 3
+        m_MethodName: UpdateParameters
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -7793,8 +7793,8 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1612136898}
         m_TargetAssemblyTypeName: PokemonTeamController, Assembly-CSharp
-        m_MethodName: SetGenerationMethod
-        m_Mode: 3
+        m_MethodName: UpdateParameters
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -8772,8 +8772,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 161, y: 10.5}
-  m_SizeDelta: {x: 16, y: 33.173}
+  m_AnchoredPosition: {x: 135, y: 17}
+  m_SizeDelta: {x: 80, y: 33.173}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &935588955
 MonoBehaviour:
@@ -8826,11 +8826,11 @@ MonoBehaviour:
   m_fontSize: 36
   m_fontSizeBase: 36
   m_fontWeight: 400
-  m_enableAutoSizing: 0
+  m_enableAutoSizing: 1
   m_fontSizeMin: 18
-  m_fontSizeMax: 72
+  m_fontSizeMax: 36
   m_fontStyle: 0
-  m_HorizontalAlignment: 2
+  m_HorizontalAlignment: 4
   m_VerticalAlignment: 4096
   m_textAlignment: 65535
   m_characterSpacing: 0
@@ -8839,7 +8839,7 @@ MonoBehaviour:
   m_lineSpacingMax: 0
   m_paragraphSpacing: 0
   m_charWidthMaxAdj: 0
-  m_enableWordWrapping: 1
+  m_enableWordWrapping: 0
   m_wordWrappingRatios: 0.4
   m_overflowMode: 0
   m_linkedTextComponent: {fileID: 0}
@@ -11232,13 +11232,25 @@ MonoBehaviour:
   m_FillRect: {fileID: 412871725}
   m_HandleRect: {fileID: 1965782522}
   m_Direction: 0
-  m_MinValue: 0
-  m_MaxValue: 1
-  m_WholeNumbers: 0
-  m_Value: 0
+  m_MinValue: 1
+  m_MaxValue: 100
+  m_WholeNumbers: 1
+  m_Value: 45
   m_OnValueChanged:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1612136898}
+        m_TargetAssemblyTypeName: PokemonTeamController, Assembly-CSharp
+        m_MethodName: UpdateParameters
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &1252247354
 GameObject:
   m_ObjectHideFlags: 0
@@ -12827,8 +12839,8 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1612136898}
         m_TargetAssemblyTypeName: PokemonTeamController, Assembly-CSharp
-        m_MethodName: SetGenerationMethod
-        m_Mode: 3
+        m_MethodName: UpdateParameters
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -14235,13 +14247,25 @@ MonoBehaviour:
   m_FillRect: {fileID: 434522687}
   m_HandleRect: {fileID: 532934968}
   m_Direction: 0
-  m_MinValue: 0
+  m_MinValue: 0.01
   m_MaxValue: 1
   m_WholeNumbers: 0
-  m_Value: 0
+  m_Value: 0.2
   m_OnValueChanged:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1612136898}
+        m_TargetAssemblyTypeName: PokemonTeamController, Assembly-CSharp
+        m_MethodName: UpdateParameters
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &1521024205
 GameObject:
   m_ObjectHideFlags: 0
@@ -14505,8 +14529,8 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1612136898}
         m_TargetAssemblyTypeName: PokemonTeamController, Assembly-CSharp
-        m_MethodName: SetGenerationMethod
-        m_Mode: 3
+        m_MethodName: UpdateParameters
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -15132,6 +15156,10 @@ MonoBehaviour:
   generations: 80
   mutationRate: 0.2
   logProgress: 1
+  muSlider: {fileID: 2029045700}
+  lambdaSlider: {fileID: 1237086375}
+  generationsSlider: {fileID: 1704458510}
+  mutationRateSlider: {fileID: 1520090892}
 --- !u!114 &1612136897
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -15239,6 +15267,10 @@ MonoBehaviour:
   - {fileID: 2200000006}
   - {fileID: 440365942}
   - {fileID: 2200000037}
+  - {fileID: 2029045700}
+  - {fileID: 1237086375}
+  - {fileID: 1704458510}
+  - {fileID: 1520090892}
   parameterValueTexts:
   - {fileID: 1758331926}
   - {fileID: 19651442}
@@ -15250,6 +15282,10 @@ MonoBehaviour:
   - {fileID: 2200000014}
   - {fileID: 1861579457}
   - {fileID: 2200000045}
+  - {fileID: 278581363}
+  - {fileID: 935588955}
+  - {fileID: 381260345}
+  - {fileID: 2039555461}
 --- !u!114 &1612136899
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -15648,13 +15684,25 @@ MonoBehaviour:
   m_FillRect: {fileID: 813272381}
   m_HandleRect: {fileID: 780639789}
   m_Direction: 0
-  m_MinValue: 0
-  m_MaxValue: 1
-  m_WholeNumbers: 0
-  m_Value: 0
+  m_MinValue: 1
+  m_MaxValue: 200
+  m_WholeNumbers: 1
+  m_Value: 80
   m_OnValueChanged:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1612136898}
+        m_TargetAssemblyTypeName: PokemonTeamController, Assembly-CSharp
+        m_MethodName: UpdateParameters
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &1731383769
 GameObject:
   m_ObjectHideFlags: 0
@@ -18031,13 +18079,25 @@ MonoBehaviour:
   m_FillRect: {fileID: 468627131}
   m_HandleRect: {fileID: 1540298978}
   m_Direction: 0
-  m_MinValue: 0
-  m_MaxValue: 1
-  m_WholeNumbers: 0
-  m_Value: 0
+  m_MinValue: 1
+  m_MaxValue: 50
+  m_WholeNumbers: 1
+  m_Value: 15
   m_OnValueChanged:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1612136898}
+        m_TargetAssemblyTypeName: PokemonTeamController, Assembly-CSharp
+        m_MethodName: UpdateParameters
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &2037288005
 GameObject:
   m_ObjectHideFlags: 0
@@ -18209,8 +18269,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 161, y: 10.5}
-  m_SizeDelta: {x: 16, y: 33.173}
+  m_AnchoredPosition: {x: 135, y: 17}
+  m_SizeDelta: {x: 80, y: 33.173}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2039555461
 MonoBehaviour:
@@ -18263,11 +18323,11 @@ MonoBehaviour:
   m_fontSize: 36
   m_fontSizeBase: 36
   m_fontWeight: 400
-  m_enableAutoSizing: 0
+  m_enableAutoSizing: 1
   m_fontSizeMin: 18
-  m_fontSizeMax: 72
+  m_fontSizeMax: 36
   m_fontStyle: 0
-  m_HorizontalAlignment: 2
+  m_HorizontalAlignment: 4
   m_VerticalAlignment: 4096
   m_textAlignment: 65535
   m_characterSpacing: 0
@@ -18276,7 +18336,7 @@ MonoBehaviour:
   m_lineSpacingMax: 0
   m_paragraphSpacing: 0
   m_charWidthMaxAdj: 0
-  m_enableWordWrapping: 1
+  m_enableWordWrapping: 0
   m_wordWrappingRatios: 0.4
   m_overflowMode: 0
   m_linkedTextComponent: {fileID: 0}
@@ -19076,8 +19136,8 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1612136898}
         m_TargetAssemblyTypeName: PokemonTeamController, Assembly-CSharp
-        m_MethodName: SetGenerationMethod
-        m_Mode: 3
+        m_MethodName: UpdateParameters
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -19256,8 +19316,8 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1612136898}
         m_TargetAssemblyTypeName: PokemonTeamController, Assembly-CSharp
-        m_MethodName: SetGenerationMethod
-        m_Mode: 3
+        m_MethodName: UpdateParameters
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -20003,8 +20063,8 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1612136898}
         m_TargetAssemblyTypeName: PokemonTeamController, Assembly-CSharp
-        m_MethodName: SetGenerationMethod
-        m_Mode: 3
+        m_MethodName: UpdateParameters
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
