@@ -340,6 +340,11 @@ public class PokemonTeamController : MonoBehaviour
     [SerializeField] private Slider[] parameterSliders = new Slider[0];
     [SerializeField] private TMP_Text[] parameterValueTexts = new TMP_Text[0];
 
+    private void Start()
+    {
+        SetGenerationMethod(generationMethod == TeamGenerationMethod.EvolutionaryStrategy ? 1 : 0);
+    }
+
     public void GenerateTeam()
     {
         if (loader == null)
@@ -450,7 +455,7 @@ public class PokemonTeamController : MonoBehaviour
             Slider slider = parameterSliders[i];
             TMP_Text label = parameterValueTexts[i];
             if (slider != null && label != null)
-                label.text = slider.value.ToString(slider.wholeNumbers ? "0" : "0.00");
+                label.text = slider.value.ToString(slider.wholeNumbers ? "0" : "0.00", System.Globalization.CultureInfo.InvariantCulture);
         }
 
         if (statusText != null) statusText.text = "Pulsa Generar para aplicar los parametros.";

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Security.Cryptography;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class EvolutionaryStrategy : MonoBehaviour
 {
@@ -51,6 +52,12 @@ public class EvolutionaryStrategy : MonoBehaviour
 
     [Header("Debug")]
     [SerializeField] private bool logProgress = true;
+
+    [Header("Runtime UI (optional)")]
+    [SerializeField] private Slider muSlider;
+    [SerializeField] private Slider lambdaSlider;
+    [SerializeField] private Slider generationsSlider;
+    [SerializeField] private Slider mutationRateSlider;
 
     /*
      * ============================================================
@@ -117,6 +124,16 @@ public class EvolutionaryStrategy : MonoBehaviour
     {
         if (dataset == null || dataset.Count == 0)
             return null;
+
+        // Leer la interfaz en cada ejecución; sin interfaz se usa el Inspector.
+        if (muSlider != null)
+            mu = Mathf.Max(1, Mathf.RoundToInt(muSlider.value));
+        if (lambdaSlider != null)
+            lambda = Mathf.Max(1, Mathf.RoundToInt(lambdaSlider.value));
+        if (generationsSlider != null)
+            generations = Mathf.Max(1, Mathf.RoundToInt(generationsSlider.value));
+        if (mutationRateSlider != null)
+            mutationRate = Mathf.Clamp01(mutationRateSlider.value);
 
         System.Random random = new System.Random();
 
