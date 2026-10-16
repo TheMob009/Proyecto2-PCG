@@ -7,6 +7,13 @@ using UnityEngine.UI;
 
 namespace PCG.Sudoku
 {
+    public enum SudokuGenerationMode
+    {
+        RandomStart,
+        Genetic,
+        GeneticThenAnnealing
+    }
+
     /// <summary>Lee la interfaz, genera la colección y muestra el candidato seleccionado.</summary>
     [DisallowMultipleComponent]
     public sealed class SudokuUIController : MonoBehaviour
@@ -27,8 +34,10 @@ namespace PCG.Sudoku
         [Header("Selección de técnica")]
         [SerializeField] private Button randomStartButton;
         [SerializeField] private Button geneticButton;
+        [SerializeField] private Button annealingButton;
         [SerializeField] private GameObject randomStartPanel;
         [SerializeField] private GameObject geneticPanel;
+        [SerializeField] private GameObject annealingPanel;
 
         [Header("Algoritmo Genético")]
         [SerializeField] private SudokuGeneticA geneticAlgorithm;
@@ -45,14 +54,32 @@ namespace PCG.Sudoku
         [SerializeField] private Slider gaEliteSlider;
         [SerializeField] private TMP_Text gaEliteLabel;
 
+        [Header("Simulated Annealing después del genético")]
+        [SerializeField] private SudokuSimulatedAnnealing simulatedAnnealing;
+        [SerializeField] private Slider saInitialTemperatureSlider;
+        [SerializeField] private TMP_Text saInitialTemperatureLabel;
+        [SerializeField] private Slider saCoolingSlider;
+        [SerializeField] private TMP_Text saCoolingLabel;
+        [SerializeField] private Slider saMinimumTemperatureSlider;
+        [SerializeField] private TMP_Text saMinimumTemperatureLabel;
+        [SerializeField] private Slider saMaxStepsSlider;
+        [SerializeField] private TMP_Text saMaxStepsLabel;
+
         private List<int[,]> boards = new List<int[,]>();
         private int currentIndex = -1;
         private Color statusColor;
-        private bool lastGeneratedWithGenetic = false;
+        private SudokuGenerationMode selectedMode;
+        private SudokuGenerationMode lastGeneratedMode;
+        private int annealingInitialCost;
+        private int annealingBestCost;
+        private int annealingSteps;
+        private AnnealingStopReason annealingStopReason;
 
         public int BoardCount => boards.Count;
         public int CurrentBoardIndex => currentIndex;
         public int? LastSeed { get; private set; }
+        public int? LastAnnealingSeed { get; private set; }
+        public SudokuGenerationMode SelectedMode => selectedMode;
 
         private void Awake()
         {
@@ -67,9 +94,12 @@ namespace PCG.Sudoku
                 statusColor = statusLabel.color;
             seedInput.contentType = TMP_InputField.ContentType.IntegerNumber;
             BindGeneticControls();
+            BindAnnealingControls();
             SelectRandomStart();
             if (geneticButton != null)
                 geneticButton.interactable = true;
+            if (annealingButton != null)
+                annealingButton.interactable = true;
         }
 
         private void OnEnable()
@@ -81,15 +111,18 @@ namespace PCG.Sudoku
             if (nextButton != null) nextButton.onClick.AddListener(NextBoard);
             if (randomStartButton != null) randomStartButton.onClick.AddListener(SelectRandomStart);
             if (geneticButton != null) geneticButton.onClick.AddListener(SelectGeneticParameters);
+            if (annealingButton != null) annealingButton.onClick.AddListener(SelectAnnealingParameters);
 
             RegisterGeneticListeners();
+            RegisterAnnealingListeners();
 
             UpdateBoardCountLabel(boardCountSlider.value);
             UpdateSeedInput(fixedSeedToggle.isOn);
             UpdateAllGeneticLabels();
+            UpdateAllAnnealingLabels();
 
             if (boards.Count == 0)
-                SetStatus("Genera estados iniciales o ejecuta el algoritmo genético para comenzar.");
+                SetStatus("Selecciona Random Start, Genetic o GA + SA y pulsa Generar.");
             else
                 ShowCurrentBoard();
             UpdateNavigation();
@@ -104,8 +137,10 @@ namespace PCG.Sudoku
             if (nextButton != null) nextButton.onClick.RemoveListener(NextBoard);
             if (randomStartButton != null) randomStartButton.onClick.RemoveListener(SelectRandomStart);
             if (geneticButton != null) geneticButton.onClick.RemoveListener(SelectGeneticParameters);
+            if (annealingButton != null) annealingButton.onClick.RemoveListener(SelectAnnealingParameters);
 
             UnregisterGeneticListeners();
+            UnregisterAnnealingListeners();
         }
 
         public void Generate()
@@ -125,13 +160,17 @@ namespace PCG.Sudoku
                 do { seed = Guid.NewGuid().GetHashCode(); } while (LastSeed == seed);
             }
 
-            if (geneticPanel != null && geneticPanel.activeSelf)
+            switch (selectedMode)
             {
-                GenerateGenetic(seed);
-            }
-            else
-            {
-                GenerateRandomStart(seed);
+                case SudokuGenerationMode.Genetic:
+                    GenerateGenetic(seed, false);
+                    break;
+                case SudokuGenerationMode.GeneticThenAnnealing:
+                    GenerateGenetic(seed, true);
+                    break;
+                default:
+                    GenerateRandomStart(seed);
+                    break;
             }
         }
 
@@ -148,12 +187,13 @@ namespace PCG.Sudoku
             boards = SudokuRandomStartState.Generate(Mathf.RoundToInt(requestedCount), seed);
             LastSeed = seed;
             currentIndex = 0;
-            lastGeneratedWithGenetic = false;
+            lastGeneratedMode = SudokuGenerationMode.RandomStart;
+            LastAnnealingSeed = null;
             seedInput.SetTextWithoutNotify(seed.ToString(CultureInfo.InvariantCulture));
             ShowCurrentBoard();
         }
 
-        private void GenerateGenetic(int seed)
+        private void GenerateGenetic(int seed, bool improveWithAnnealing)
         {
             if (geneticAlgorithm == null)
             {
@@ -162,25 +202,62 @@ namespace PCG.Sudoku
                     geneticAlgorithm = gameObject.AddComponent<SudokuGeneticA>();
             }
 
-            if (gaPopulationSlider != null)
+            if (gaPopulationSlider == null || gaGenerationsSlider == null || gaCrossoverSlider == null ||
+                gaMutationSlider == null || gaTournamentSlider == null || gaEliteSlider == null)
             {
-                geneticAlgorithm.SetParameters(
-                    Mathf.RoundToInt(gaPopulationSlider.value),
-                    gaGenerationsSlider != null ? Mathf.RoundToInt(gaGenerationsSlider.value) : 80,
-                    gaCrossoverSlider != null ? gaCrossoverSlider.value : 0.8f,
-                    gaMutationSlider != null ? gaMutationSlider.value : 0.1f,
-                    gaTournamentSlider != null ? Mathf.RoundToInt(gaTournamentSlider.value) : 3,
-                    gaEliteSlider != null ? Mathf.RoundToInt(gaEliteSlider.value) : 2
-                );
+                SetStatus("Faltan controles del algoritmo genético en la interfaz.", true);
+                return;
             }
+
+            int population = Mathf.RoundToInt(gaPopulationSlider.value);
+            int generations = Mathf.RoundToInt(gaGenerationsSlider.value);
+            float crossover = gaCrossoverSlider.value;
+            float mutation = gaMutationSlider.value;
+            int tournament = Mathf.RoundToInt(gaTournamentSlider.value);
+            int elites = Mathf.RoundToInt(gaEliteSlider.value);
+
+            if (population < 2 || population > SudokuRandomStartState.MaxBoardCount || generations < 1 ||
+                tournament < 1 || tournament > population || elites < 0 || elites >= population ||
+                float.IsNaN(crossover) || crossover < 0f || crossover > 1f ||
+                float.IsNaN(mutation) || mutation < 0f || mutation > 1f)
+            {
+                SetStatus("Parámetros inválidos: revisa población, generaciones y probabilidades.\n" +
+                    "El torneo no debe superar la población y el elitismo debe ser menor.", true);
+                return;
+            }
+
+            // Entregar los seis valores visibles; no sustituir controles ausentes por valores del Inspector.
+            geneticAlgorithm.SetParameters(population, generations, crossover, mutation, tournament, elites);
+
+            // Rechazar parámetros locales inválidos antes de invertir tiempo en el genético.
+            if (improveWithAnnealing && !ConfigureAnnealing()) return;
 
             SudokuCandidate result = geneticAlgorithm.Generate(seed);
             if (result != null && result.board != null)
             {
-                boards = new List<int[,]> { result.board };
+                var geneticBoard = (int[,])result.board.Clone();
+                if (improveWithAnnealing)
+                {
+                    // Derivación estable: una ejecución es reproducible sin compartir la secuencia RNG de GA.
+                    int annealingSeed = unchecked((seed * 397) ^ 0x5341);
+                    SudokuCandidate improved = simulatedAnnealing.Improve(result, annealingSeed);
+                    boards = new List<int[,]> { geneticBoard, (int[,])improved.board.Clone() };
+                    annealingInitialCost = simulatedAnnealing.InitialCost;
+                    annealingBestCost = simulatedAnnealing.BestCost;
+                    annealingSteps = simulatedAnnealing.StepsPerformed;
+                    annealingStopReason = simulatedAnnealing.StopReason;
+                    LastAnnealingSeed = annealingSeed;
+                    lastGeneratedMode = SudokuGenerationMode.GeneticThenAnnealing;
+                    currentIndex = 1;
+                }
+                else
+                {
+                    boards = new List<int[,]> { geneticBoard };
+                    LastAnnealingSeed = null;
+                    lastGeneratedMode = SudokuGenerationMode.Genetic;
+                    currentIndex = 0;
+                }
                 LastSeed = seed;
-                currentIndex = 0;
-                lastGeneratedWithGenetic = true;
                 seedInput.SetTextWithoutNotify(seed.ToString(CultureInfo.InvariantCulture));
                 ShowCurrentBoard();
             }
@@ -214,12 +291,20 @@ namespace PCG.Sudoku
 
         public void SelectRandomStart()
         {
+            selectedMode = SudokuGenerationMode.RandomStart;
             ShowParameterPanel(randomStartPanel);
         }
 
         public void SelectGeneticParameters()
         {
+            selectedMode = SudokuGenerationMode.Genetic;
             ShowParameterPanel(geneticPanel);
+        }
+
+        public void SelectAnnealingParameters()
+        {
+            selectedMode = SudokuGenerationMode.GeneticThenAnnealing;
+            ShowParameterPanel(annealingPanel);
         }
 
         private static void ShowParameterPanel(GameObject selectedPanel)
@@ -235,17 +320,17 @@ namespace PCG.Sudoku
         {
             boardView.SetBoard(boards[currentIndex]);
             SudokuEvaluation evaluation = SudokuEvaluator.Evaluate(boards[currentIndex]);
-            string state;
-            if (evaluation.IsValid)
-                state = "Solución válida";
-            else if (lastGeneratedWithGenetic)
-                state = "Algoritmo Genético";
-            else
-                state = "Estado inicial";
+            string state = lastGeneratedMode == SudokuGenerationMode.RandomStart ? "Estado inicial" :
+                lastGeneratedMode == SudokuGenerationMode.Genetic ? "Genetic" :
+                currentIndex == 0 ? "GA (antes de SA)" : "GA + SA";
+            if (evaluation.IsValid) state += " | Solución válida";
 
-            SetStatus($"{state} {currentIndex + 1}/{boards.Count} | Semilla: {LastSeed}\n" +
+            string status = $"{state} {currentIndex + 1}/{boards.Count} | Semilla: {LastSeed}\n" +
                 $"Conflictos: {evaluation.TotalConflicts} (filas: {evaluation.RowConflicts}, " +
-                $"columnas: {evaluation.ColumnConflicts}, bloques: {evaluation.BlockConflicts})");
+                $"columnas: {evaluation.ColumnConflicts}, bloques: {evaluation.BlockConflicts})";
+            if (lastGeneratedMode == SudokuGenerationMode.GeneticThenAnnealing)
+                status += $"\nSA: {annealingInitialCost} → {annealingBestCost} | {annealingSteps} pasos | {StopReasonText(annealingStopReason)}";
+            SetStatus(status);
             UpdateNavigation();
         }
 
@@ -260,18 +345,66 @@ namespace PCG.Sudoku
 
             if (geneticPanel != null)
             {
-                BindControl(ref gaPopulationSlider, ref gaPopulationLabel, "GAPoblation");
-                BindControl(ref gaGenerationsSlider, ref gaGenerationsLabel, "GAGenerations");
-                BindControl(ref gaCrossoverSlider, ref gaCrossoverLabel, "GACrossover");
-                BindControl(ref gaMutationSlider, ref gaMutationLabel, "GAMutacion");
-                BindControl(ref gaTournamentSlider, ref gaTournamentLabel, "GATorneo");
-                BindControl(ref gaEliteSlider, ref gaEliteLabel, "GAElitismo");
+                BindControl(geneticPanel, ref gaPopulationSlider, ref gaPopulationLabel, "GAPoblation");
+                BindControl(geneticPanel, ref gaGenerationsSlider, ref gaGenerationsLabel, "GAGenerations");
+                BindControl(geneticPanel, ref gaCrossoverSlider, ref gaCrossoverLabel, "GACrossover");
+                BindControl(geneticPanel, ref gaMutationSlider, ref gaMutationLabel, "GAMutacion");
+                BindControl(geneticPanel, ref gaTournamentSlider, ref gaTournamentLabel, "GATorneo");
+                BindControl(geneticPanel, ref gaEliteSlider, ref gaEliteLabel, "GAElitismo");
             }
         }
 
-        private void BindControl(ref Slider slider, ref TMP_Text label, string childName)
+        private void BindAnnealingControls()
         {
-            Transform t = geneticPanel.transform.Find(childName);
+            if (simulatedAnnealing == null)
+            {
+                simulatedAnnealing = FindObjectOfType<SudokuSimulatedAnnealing>();
+                if (simulatedAnnealing == null)
+                    simulatedAnnealing = gameObject.AddComponent<SudokuSimulatedAnnealing>();
+            }
+            if (annealingPanel == null) return;
+            BindControl(annealingPanel, ref saInitialTemperatureSlider, ref saInitialTemperatureLabel, "SA_InitialTemperature");
+            BindControl(annealingPanel, ref saCoolingSlider, ref saCoolingLabel, "SA_CooldownFactor");
+            BindControl(annealingPanel, ref saMinimumTemperatureSlider, ref saMinimumTemperatureLabel, "SA_MinimumTemperature");
+            BindControl(annealingPanel, ref saMaxStepsSlider, ref saMaxStepsLabel, "SA_MaxSteps");
+        }
+
+        private bool ConfigureAnnealing()
+        {
+            if (simulatedAnnealing == null || saInitialTemperatureSlider == null || saCoolingSlider == null ||
+                saMinimumTemperatureSlider == null || saMaxStepsSlider == null)
+            {
+                SetStatus("Faltan referencias de Simulated Annealing en la interfaz.", true);
+                return false;
+            }
+            try
+            {
+                simulatedAnnealing.SetParameters(saInitialTemperatureSlider.value, saCoolingSlider.value,
+                    saMinimumTemperatureSlider.value, Mathf.RoundToInt(saMaxStepsSlider.value));
+                return true;
+            }
+            catch (ArgumentException)
+            {
+                SetStatus("Revisa SA: temperatura inicial > mínima > 0,\n" +
+                    "enfriamiento entre 0 y 1 y pasos positivos.", true);
+                return false;
+            }
+        }
+
+        private static string StopReasonText(AnnealingStopReason reason)
+        {
+            switch (reason)
+            {
+                case AnnealingStopReason.AlreadySolved: return "GA ya resuelto";
+                case AnnealingStopReason.SolutionFound: return "Cero conflictos";
+                case AnnealingStopReason.StepLimit: return "Límite de pasos";
+                default: return "Temperatura mínima";
+            }
+        }
+
+        private void BindControl(GameObject panel, ref Slider slider, ref TMP_Text label, string childName)
+        {
+            Transform t = panel.transform.Find(childName);
             if (t == null) return;
             if (slider == null)
             {
@@ -293,6 +426,50 @@ namespace PCG.Sudoku
             if (gaMutationSlider != null) gaMutationSlider.onValueChanged.AddListener(UpdateGAMutationLabel);
             if (gaTournamentSlider != null) gaTournamentSlider.onValueChanged.AddListener(UpdateGATournamentLabel);
             if (gaEliteSlider != null) gaEliteSlider.onValueChanged.AddListener(UpdateGAEliteLabel);
+        }
+
+        private void RegisterAnnealingListeners()
+        {
+            if (saInitialTemperatureSlider != null) saInitialTemperatureSlider.onValueChanged.AddListener(UpdateSAInitialTemperatureLabel);
+            if (saCoolingSlider != null) saCoolingSlider.onValueChanged.AddListener(UpdateSACoolingLabel);
+            if (saMinimumTemperatureSlider != null) saMinimumTemperatureSlider.onValueChanged.AddListener(UpdateSAMinimumTemperatureLabel);
+            if (saMaxStepsSlider != null) saMaxStepsSlider.onValueChanged.AddListener(UpdateSAMaxStepsLabel);
+        }
+
+        private void UnregisterAnnealingListeners()
+        {
+            if (saInitialTemperatureSlider != null) saInitialTemperatureSlider.onValueChanged.RemoveListener(UpdateSAInitialTemperatureLabel);
+            if (saCoolingSlider != null) saCoolingSlider.onValueChanged.RemoveListener(UpdateSACoolingLabel);
+            if (saMinimumTemperatureSlider != null) saMinimumTemperatureSlider.onValueChanged.RemoveListener(UpdateSAMinimumTemperatureLabel);
+            if (saMaxStepsSlider != null) saMaxStepsSlider.onValueChanged.RemoveListener(UpdateSAMaxStepsLabel);
+        }
+
+        private void UpdateAllAnnealingLabels()
+        {
+            if (saInitialTemperatureSlider != null) UpdateSAInitialTemperatureLabel(saInitialTemperatureSlider.value);
+            if (saCoolingSlider != null) UpdateSACoolingLabel(saCoolingSlider.value);
+            if (saMinimumTemperatureSlider != null) UpdateSAMinimumTemperatureLabel(saMinimumTemperatureSlider.value);
+            if (saMaxStepsSlider != null) UpdateSAMaxStepsLabel(saMaxStepsSlider.value);
+        }
+
+        private void UpdateSAInitialTemperatureLabel(float value)
+        {
+            if (saInitialTemperatureLabel != null) saInitialTemperatureLabel.text = value.ToString("F2", CultureInfo.InvariantCulture);
+        }
+
+        private void UpdateSACoolingLabel(float value)
+        {
+            if (saCoolingLabel != null) saCoolingLabel.text = value.ToString("F4", CultureInfo.InvariantCulture);
+        }
+
+        private void UpdateSAMinimumTemperatureLabel(float value)
+        {
+            if (saMinimumTemperatureLabel != null) saMinimumTemperatureLabel.text = value.ToString("F4", CultureInfo.InvariantCulture);
+        }
+
+        private void UpdateSAMaxStepsLabel(float value)
+        {
+            if (saMaxStepsLabel != null) saMaxStepsLabel.text = Mathf.RoundToInt(value).ToString(CultureInfo.InvariantCulture);
         }
 
         private void UnregisterGeneticListeners()
