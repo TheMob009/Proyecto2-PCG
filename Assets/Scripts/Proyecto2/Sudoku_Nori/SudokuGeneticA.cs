@@ -5,12 +5,12 @@ using UnityEngine;
 
 public class SudokuGeneticA : MonoBehaviour
 {
-    [SerializeField] private int populationSize = 50;
-    [SerializeField] private int generations = 80;
+    [SerializeField] private int populationSize = 100;
+    [SerializeField] private int generations = 150;
     [SerializeField] private float crossoverRate = 0.8f;
-    [SerializeField] private float mutationRate = 0.1f;
-    [SerializeField] private int tournamentSize = 3;
-    [SerializeField] private int eliteCount = 2;
+    [SerializeField] private float mutationRate = 0.2f;
+    [SerializeField] private int tournamentSize = 5;
+    [SerializeField] private int eliteCount = 5;
 
 
     public void SetParameters(int popSize, int gens, float crossRate, float mutRate, int tourSize, int elite)

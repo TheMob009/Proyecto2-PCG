@@ -14,10 +14,10 @@ public enum AnnealingStopReason
 [DisallowMultipleComponent]
 public sealed class SudokuSimulatedAnnealing : MonoBehaviour
 {
-    [SerializeField] private float initialTemperature = 10f;
-    [SerializeField] private float coolingRate = 0.99f;
-    [SerializeField] private float minTemperature = 0.001f;
-    [SerializeField] private int maxSteps = 10000;
+    [SerializeField] private float initialTemperature = 0.2f;
+    [SerializeField] private float coolingRate = 0.9999f;
+    [SerializeField] private float minTemperature = 0.0001f;
+    [SerializeField] private int maxSteps = 50000;
 
     public int StepsPerformed { get; private set; }
     public int InitialCost { get; private set; }

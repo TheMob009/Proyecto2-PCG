@@ -8,8 +8,10 @@ namespace PCG.Sudoku
     {
         public const int Size = 9;
         public const int MaxBoardCount = 200;
+        public const int DefaultBoardCount = 100;
+        public const int DefaultSeed = 12345;
 
-        public static List<int[,]> Generate(int boardCount, int seed)
+        public static List<int[,]> Generate(int boardCount = DefaultBoardCount, int seed = DefaultSeed)
         {
             if (boardCount < 1 || boardCount > MaxBoardCount)
                 throw new ArgumentOutOfRangeException(nameof(boardCount),
