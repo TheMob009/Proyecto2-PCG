@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace PCG.Sudoku
 {
@@ -13,9 +14,18 @@ namespace PCG.Sudoku
         public const int Size = 9;
         public const int CellCount = Size * Size;
 
+        /// <summary>Color de texto por defecto de las celdas (igual al configurado originalmente en la escena).</summary>
+        public static readonly Color DefaultTextColor = new Color(0.12f, 0.15f, 0.2f);
+
         // Orden por filas: índice = fila * 9 + columna, desde la esquina superior izquierda.
         [SerializeField] private TMP_Text[] cells = new TMP_Text[CellCount];
         private readonly int[] values = new int[CellCount];
+        private Image[] cellBackgrounds;
+        private Color[] originalCellBackgrounds;
+        private bool interactionEnabled;
+
+        /// <summary>Se invoca cuando el jugador hace clic en una celda, una vez habilitada la interacción.</summary>
+        public event Action<int, int> CellClicked;
 
         public void SetBoard(int[,] board)
         {
@@ -69,6 +79,77 @@ namespace PCG.Sudoku
             ValidateCells();
             for (int index = 0; index < CellCount; index++)
                 WriteCell(index, 0);
+        }
+
+        /// <summary>Habilita el clic sobre las 81 celdas (idempotente). Necesario para poder jugar el Sudoku.</summary>
+        public void EnableInteraction()
+        {
+            ValidateCells();
+            if (interactionEnabled) return;
+            interactionEnabled = true;
+
+            cellBackgrounds = new Image[CellCount];
+            originalCellBackgrounds = new Color[CellCount];
+
+            for (int row = 0; row < Size; row++)
+            {
+                for (int column = 0; column < Size; column++)
+                {
+                    int index = row * Size + column;
+                    int capturedRow = row;
+                    int capturedColumn = column;
+                    GameObject cellObject = CellContainer(index);
+
+                    Image image = cellObject.GetComponent<Image>();
+                    if (image != null)
+                    {
+                        image.raycastTarget = true;
+                        cellBackgrounds[index] = image;
+                        originalCellBackgrounds[index] = image.color;
+                    }
+
+                    Button button = cellObject.GetComponent<Button>();
+                    if (button == null) button = cellObject.AddComponent<Button>();
+                    button.onClick.AddListener(() => CellClicked?.Invoke(capturedRow, capturedColumn));
+                }
+            }
+        }
+
+        /// <summary>Cambia el color del texto de una celda (por ejemplo, para distinguir pistas, respuestas y conflictos).</summary>
+        public void SetCellColor(int row, int column, Color color)
+        {
+            ValidateCoordinates(row, column);
+            ValidateCells();
+            cells[row * Size + column].color = color;
+        }
+
+        /// <summary>Resalta (o restaura, con null) el fondo de una celda. Requiere haber llamado a <see cref="EnableInteraction"/>.</summary>
+        public void SetCellBackground(int row, int column, Color? color)
+        {
+            ValidateCoordinates(row, column);
+            if (cellBackgrounds == null) return;
+            int index = row * Size + column;
+            Image image = cellBackgrounds[index];
+            if (image == null) return;
+            image.color = color ?? originalCellBackgrounds[index];
+        }
+
+        /// <summary>Restaura el color de texto y de fondo por defecto de las 81 celdas.</summary>
+        public void ResetCellStyles()
+        {
+            ValidateCells();
+            for (int index = 0; index < CellCount; index++)
+            {
+                cells[index].color = DefaultTextColor;
+                if (cellBackgrounds != null && cellBackgrounds[index] != null)
+                    cellBackgrounds[index].color = originalCellBackgrounds[index];
+            }
+        }
+
+        private GameObject CellContainer(int index)
+        {
+            Transform parent = cells[index].transform.parent;
+            return parent != null ? parent.gameObject : cells[index].gameObject;
         }
 
         private void WriteCell(int index, int value)

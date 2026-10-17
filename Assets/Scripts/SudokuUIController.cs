@@ -65,6 +65,13 @@ namespace PCG.Sudoku
         [SerializeField] private Slider saMaxStepsSlider;
         [SerializeField] private TMP_Text saMaxStepsLabel;
 
+        [Header("Modo de juego")]
+        [SerializeField] private SudokuPlayController playController;
+        [SerializeField] private Button playButton;
+        [SerializeField] private Slider removeCountSlider;
+        [SerializeField] private TMP_Text removeCountLabel;
+        private const int DefaultRemoveCount = 40;
+
         private List<int[,]> boards = new List<int[,]>();
         private int currentIndex = -1;
         private Color statusColor;
@@ -95,6 +102,7 @@ namespace PCG.Sudoku
             seedInput.contentType = TMP_InputField.ContentType.IntegerNumber;
             BindGeneticControls();
             BindAnnealingControls();
+            BindPlayControls();
             SelectRandomStart();
             if (geneticButton != null)
                 geneticButton.interactable = true;
@@ -112,14 +120,18 @@ namespace PCG.Sudoku
             if (randomStartButton != null) randomStartButton.onClick.AddListener(SelectRandomStart);
             if (geneticButton != null) geneticButton.onClick.AddListener(SelectGeneticParameters);
             if (annealingButton != null) annealingButton.onClick.AddListener(SelectAnnealingParameters);
+            if (playButton != null) playButton.onClick.AddListener(PlayCurrentBoard);
+            if (playController != null) playController.StatusChanged += OnPlayStatusChanged;
 
             RegisterGeneticListeners();
             RegisterAnnealingListeners();
+            RegisterPlayListeners();
 
             UpdateBoardCountLabel(boardCountSlider.value);
             UpdateSeedInput(fixedSeedToggle.isOn);
             UpdateAllGeneticLabels();
             UpdateAllAnnealingLabels();
+            UpdateAllPlayLabels();
 
             if (boards.Count == 0)
                 SetStatus("Selecciona Random Start, Genetic o GA + SA y pulsa Generar.");
@@ -138,13 +150,19 @@ namespace PCG.Sudoku
             if (randomStartButton != null) randomStartButton.onClick.RemoveListener(SelectRandomStart);
             if (geneticButton != null) geneticButton.onClick.RemoveListener(SelectGeneticParameters);
             if (annealingButton != null) annealingButton.onClick.RemoveListener(SelectAnnealingParameters);
+            if (playButton != null) playButton.onClick.RemoveListener(PlayCurrentBoard);
+            if (playController != null) playController.StatusChanged -= OnPlayStatusChanged;
 
             UnregisterGeneticListeners();
             UnregisterAnnealingListeners();
+            UnregisterPlayListeners();
         }
 
         public void Generate()
         {
+            // Salir del modo juego antes de reemplazar el tablero mostrado.
+            if (playController != null) playController.StopPuzzle();
+
             int seed;
             if (fixedSeedToggle.isOn)
             {
@@ -270,6 +288,7 @@ namespace PCG.Sudoku
         public void PreviousBoard()
         {
             if (currentIndex <= 0) return;
+            if (playController != null) playController.StopPuzzle();
             currentIndex--;
             ShowCurrentBoard();
         }
@@ -277,8 +296,54 @@ namespace PCG.Sudoku
         public void NextBoard()
         {
             if (currentIndex < 0 || currentIndex >= boards.Count - 1) return;
+            if (playController != null) playController.StopPuzzle();
             currentIndex++;
             ShowCurrentBoard();
+        }
+
+        /// <summary>Convierte el tablero mostrado (debe tener cero conflictos) en un puzzle jugable, vaciando celdas al azar.</summary>
+        public void PlayCurrentBoard()
+        {
+            if (currentIndex < 0 || currentIndex >= boards.Count)
+            {
+                SetStatus("Genera un tablero completo antes de jugar.", true);
+                return;
+            }
+
+            int[,] current = boards[currentIndex];
+            SudokuEvaluation evaluation;
+            try
+            {
+                evaluation = SudokuEvaluator.Evaluate(current);
+            }
+            catch (ArgumentException)
+            {
+                SetStatus("El tablero mostrado no está completo; no se puede usar para jugar.", true);
+                return;
+            }
+
+            if (!evaluation.IsValid)
+            {
+                SetStatus($"El tablero mostrado tiene {evaluation.TotalConflicts} conflictos; resuélvelo antes de jugar.", true);
+                return;
+            }
+
+            if (playController == null)
+            {
+                playController = FindObjectOfType<SudokuPlayController>();
+                if (playController == null)
+                    playController = gameObject.AddComponent<SudokuPlayController>();
+                playController.StatusChanged += OnPlayStatusChanged;
+            }
+
+            int removeCount = removeCountSlider != null ? Mathf.RoundToInt(removeCountSlider.value) : DefaultRemoveCount;
+            int seed = LastSeed ?? SudokuRandomStartState.DefaultSeed;
+            playController.StartPuzzle(current, removeCount, seed);
+        }
+
+        private void OnPlayStatusChanged(string message)
+        {
+            SetStatus(message);
         }
 
         /// <summary>Entrega una copia independiente para futuras búsquedas, sin alterar el estado inicial.</summary>
@@ -389,6 +454,36 @@ namespace PCG.Sudoku
                     "enfriamiento entre 0 y 1 y pasos positivos.", true);
                 return false;
             }
+        }
+
+        private void BindPlayControls()
+        {
+            if (playController == null)
+            {
+                playController = FindObjectOfType<SudokuPlayController>();
+                if (playController == null)
+                    playController = gameObject.AddComponent<SudokuPlayController>();
+            }
+        }
+
+        private void RegisterPlayListeners()
+        {
+            if (removeCountSlider != null) removeCountSlider.onValueChanged.AddListener(UpdateRemoveCountLabel);
+        }
+
+        private void UnregisterPlayListeners()
+        {
+            if (removeCountSlider != null) removeCountSlider.onValueChanged.RemoveListener(UpdateRemoveCountLabel);
+        }
+
+        private void UpdateAllPlayLabels()
+        {
+            if (removeCountSlider != null) UpdateRemoveCountLabel(removeCountSlider.value);
+        }
+
+        private void UpdateRemoveCountLabel(float value)
+        {
+            if (removeCountLabel != null) removeCountLabel.text = Mathf.RoundToInt(value).ToString(CultureInfo.InvariantCulture);
         }
 
         private static string StopReasonText(AnnealingStopReason reason)
