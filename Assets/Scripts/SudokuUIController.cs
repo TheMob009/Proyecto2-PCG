@@ -137,7 +137,7 @@ namespace PCG.Sudoku
 
             if (boards.Count == 0)
                 SetStatus(fullPipelineOnly
-                    ? "Ajusta los parámetros y pulsa Generar: Random → GA → SA."
+                    ? "Ajusta los parámetros y pulsa Generar: Random + GA + SA."
                     : "Selecciona Random Start, Genetic o GA + SA y pulsa Generar.");
             else
                 ShowCurrentBoard();
@@ -399,14 +399,14 @@ namespace PCG.Sudoku
             string state = lastGeneratedMode == SudokuGenerationMode.RandomStart ? "Estado inicial" :
                 lastGeneratedMode == SudokuGenerationMode.Genetic ? "Genetic" :
                 currentIndex == 0 ? "GA (antes de SA)" :
-                fullPipelineOnly ? "Random → GA → SA" : "GA + SA";
-            if (evaluation.IsValid) state += " | Solución válida";
+                fullPipelineOnly ? "Random + GA + SA" : "GA + SA";
+            if (evaluation.IsValid) state += " | Válido";
 
             string status = $"{state} {currentIndex + 1}/{boards.Count} | Semilla: {LastSeed}\n" +
-                $"Conflictos: {evaluation.TotalConflicts} (filas: {evaluation.RowConflicts}, " +
-                $"columnas: {evaluation.ColumnConflicts}, bloques: {evaluation.BlockConflicts})";
+                $"Conflictos: {evaluation.TotalConflicts} | Filas {evaluation.RowConflicts}, " +
+                $"Cols {evaluation.ColumnConflicts}, Bloques {evaluation.BlockConflicts}";
             if (lastGeneratedMode == SudokuGenerationMode.GeneticThenAnnealing)
-                status += $"\nSA: {annealingInitialCost} → {annealingBestCost} | {annealingSteps} pasos | {StopReasonText(annealingStopReason)}";
+                status += $"\nSA: {annealingInitialCost} -> {annealingBestCost} | {annealingSteps} pasos | {StopReasonText(annealingStopReason)}";
             SetStatus(status);
             UpdateNavigation();
         }
@@ -650,7 +650,7 @@ namespace PCG.Sudoku
         {
             if (statusLabel == null) return;
             statusLabel.text = message;
-            statusLabel.color = isError ? new Color(0.75f, 0.12f, 0.12f) : statusColor;
+            statusLabel.color = isError ? new Color(1f, 0.55f, 0.5f) : statusColor;
         }
     }
 }
