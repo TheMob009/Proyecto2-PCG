@@ -25,6 +25,8 @@ namespace PCG.Sudoku
         [SerializeField] private Toggle fixedSeedToggle;
         [SerializeField] private TMP_InputField seedInput;
         [SerializeField] private Button generateButton;
+        [Tooltip("Generar siempre ejecuta Random Start, GA y SA; los botones de técnicas solo abren sus parámetros.")]
+        [SerializeField] private bool fullPipelineOnly;
 
         [Header("Resultados")]
         [SerializeField] private TMP_Text statusLabel;
@@ -134,7 +136,9 @@ namespace PCG.Sudoku
             UpdateAllPlayLabels();
 
             if (boards.Count == 0)
-                SetStatus("Selecciona Random Start, Genetic o GA + SA y pulsa Generar.");
+                SetStatus(fullPipelineOnly
+                    ? "Ajusta los parámetros y pulsa Generar: Random → GA → SA."
+                    : "Selecciona Random Start, Genetic o GA + SA y pulsa Generar.");
             else
                 ShowCurrentBoard();
             UpdateNavigation();
@@ -176,6 +180,13 @@ namespace PCG.Sudoku
             {
                 // Independiente del estado aleatorio global de Unity; conservar la semilla real.
                 do { seed = Guid.NewGuid().GetHashCode(); } while (LastSeed == seed);
+            }
+
+            if (fullPipelineOnly)
+            {
+                // GA crea su población con Random Start; SA recibe el mejor candidato de GA.
+                GenerateGenetic(seed, true);
+                return;
             }
 
             switch (selectedMode)
@@ -356,13 +367,13 @@ namespace PCG.Sudoku
 
         public void SelectRandomStart()
         {
-            selectedMode = SudokuGenerationMode.RandomStart;
+            selectedMode = fullPipelineOnly ? SudokuGenerationMode.GeneticThenAnnealing : SudokuGenerationMode.RandomStart;
             ShowParameterPanel(randomStartPanel);
         }
 
         public void SelectGeneticParameters()
         {
-            selectedMode = SudokuGenerationMode.Genetic;
+            selectedMode = fullPipelineOnly ? SudokuGenerationMode.GeneticThenAnnealing : SudokuGenerationMode.Genetic;
             ShowParameterPanel(geneticPanel);
         }
 
@@ -387,7 +398,8 @@ namespace PCG.Sudoku
             SudokuEvaluation evaluation = SudokuEvaluator.Evaluate(boards[currentIndex]);
             string state = lastGeneratedMode == SudokuGenerationMode.RandomStart ? "Estado inicial" :
                 lastGeneratedMode == SudokuGenerationMode.Genetic ? "Genetic" :
-                currentIndex == 0 ? "GA (antes de SA)" : "GA + SA";
+                currentIndex == 0 ? "GA (antes de SA)" :
+                fullPipelineOnly ? "Random → GA → SA" : "GA + SA";
             if (evaluation.IsValid) state += " | Solución válida";
 
             string status = $"{state} {currentIndex + 1}/{boards.Count} | Semilla: {LastSeed}\n" +

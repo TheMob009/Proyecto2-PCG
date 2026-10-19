@@ -61,8 +61,9 @@ namespace PCG.Sudoku
             boardView.EnableInteraction();
             Render();
             StatusChanged?.Invoke(
-                $"Modo juego: se vaciaron {cellsToRemove} celdas. Haz clic en una celda vacía y escribe un número (1-9). " +
-                "Retroceso/Suprimir la borra.");
+                $"Modo juego: {CountEmpty()} casillas vacías.\n" +
+                "Selecciona una casilla y escribe 1-9.\n" +
+                "Retroceso o Suprimir: borrar.");
         }
 
         /// <summary>Sale del modo juego y restaura el aspecto normal del tablero (lo usa la UI antes de generar otro tablero).</summary>
