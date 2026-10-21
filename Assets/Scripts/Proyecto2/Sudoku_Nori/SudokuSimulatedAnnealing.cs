@@ -1,105 +1,52 @@
-using System;
 using PCG.Sudoku;
 using UnityEngine;
 
-public enum AnnealingStopReason
-{
-    AlreadySolved,
-    SolutionFound,
-    MinimumTemperature,
-    StepLimit
-}
-
-/// <summary>Mejora un candidato existente conservando el mejor tablero visitado.</summary>
+/// <summary>Configura SA para seleccionar pistas con cantidad y dificultad lógica objetivo.</summary>
 [DisallowMultipleComponent]
 public sealed class SudokuSimulatedAnnealing : MonoBehaviour
 {
-    [SerializeField] private float initialTemperature = 0.2f;
-    [SerializeField] private float coolingRate = 0.9999f;
+    [Header("Perfiles de dificultad")]
+    [Tooltip("Al cambiar Dificultad en la interfaz carga las pistas y los parámetros recomendados. Desactívalo para conservar ajustes manuales.")]
+    [SerializeField] private bool useDifficultyPresets = true;
+    public bool UseDifficultyPresets => useDifficultyPresets;
+
+    [Header("Objetivos del puzzle")]
+    [SerializeField, Range(17, 80)] private int targetClues = 41;
+    [SerializeField] private SudokuDifficulty targetDifficulty = SudokuDifficulty.Easy;
+    [SerializeField, Min(0.001f)] private float clueWeight = 1f;
+    [SerializeField, Min(0.001f)] private float difficultyWeight = 1f;
+
+    [Header("Exploración de pistas")]
+    [SerializeField] private float initialTemperature = 0.05f;
+    [SerializeField] private float coolingRate = 0.999f;
     [SerializeField] private float minTemperature = 0.0001f;
-    [SerializeField] private int maxSteps = 50000;
+    [SerializeField, Min(1)] private int maxSteps = 5000;
+    [SerializeField, Range(0, 20)] private int maxRestarts = 2;
+    [SerializeField, Min(1)] private int solutionNodeLimit = 20000;
 
-    public int StepsPerformed { get; private set; }
-    public int InitialCost { get; private set; }
-    public int BestCost { get; private set; }
-    public float FinalTemperature { get; private set; }
-    public AnnealingStopReason StopReason { get; private set; }
-
-    public void SetParameters(float initial, float cooling, float minimum, int steps)
+    public SudokuPuzzleSettings Settings => new SudokuPuzzleSettings
     {
-        ValidateParameters(initial, cooling, minimum, steps);
-        initialTemperature = initial;
-        coolingRate = cooling;
-        minTemperature = minimum;
-        maxSteps = steps;
+        TargetClues = targetClues, TargetDifficulty = targetDifficulty, ClueWeight = clueWeight,
+        DifficultyWeight = difficultyWeight, InitialTemperature = initialTemperature,
+        CoolingRate = coolingRate, MinimumTemperature = minTemperature, MaxSteps = maxSteps,
+        MaxRestarts = maxRestarts, SolutionNodeLimit = solutionNodeLimit
+    };
+
+    public void SetParameters(SudokuPuzzleSettings settings)
+    {
+        settings.Validate();
+        targetClues = settings.TargetClues;
+        targetDifficulty = settings.TargetDifficulty;
+        clueWeight = (float)settings.ClueWeight;
+        difficultyWeight = (float)settings.DifficultyWeight;
+        initialTemperature = (float)settings.InitialTemperature;
+        coolingRate = (float)settings.CoolingRate;
+        minTemperature = (float)settings.MinimumTemperature;
+        maxSteps = settings.MaxSteps;
+        maxRestarts = settings.MaxRestarts;
+        solutionNodeLimit = settings.SolutionNodeLimit;
     }
 
-    public SudokuCandidate Improve(SudokuCandidate initialCandidate, int seed)
-    {
-        ValidateParameters(initialTemperature, coolingRate, minTemperature, maxSteps);
-        if (initialCandidate == null)
-            throw new ArgumentNullException(nameof(initialCandidate));
-
-        // Evaluar la matriz antes de clonar también valida tamaño y valores permitidos.
-        int initialCost = SudokuEvaluator.Evaluate(initialCandidate.board).TotalConflicts;
-        var random = new System.Random(seed);
-        var current = initialCandidate.Clone();
-        current.cost = initialCost;
-        var best = current.Clone();
-        float temperature = initialTemperature;
-        StepsPerformed = 0;
-        InitialCost = initialCost;
-
-        while (current.cost > 0 && temperature > minTemperature && StepsPerformed < maxSteps)
-        {
-            SudokuCandidate next = GetSuccessor(current, random);
-            double delta = current.cost - next.cost;
-            // Un empeoramiento produce un exponente negativo; los empates se aceptan.
-            if (delta >= 0 || random.NextDouble() < Math.Exp(delta / temperature))
-                current = next;
-
-            if (current.cost < best.cost)
-                best = current.Clone();
-
-            StepsPerformed++;
-            temperature *= coolingRate;
-        }
-
-        BestCost = best.cost;
-        FinalTemperature = temperature;
-        StopReason = initialCost == 0 ? AnnealingStopReason.AlreadySolved :
-            best.cost == 0 ? AnnealingStopReason.SolutionFound :
-            StepsPerformed >= maxSteps ? AnnealingStopReason.StepLimit :
-            AnnealingStopReason.MinimumTemperature;
-        return best;
-    }
-
-    private static void ValidateParameters(float initial, float cooling, float minimum, int steps)
-    {
-        if (!IsFinite(minimum) || minimum <= 0f)
-            throw new ArgumentOutOfRangeException(nameof(minimum), "La temperatura mínima debe ser positiva y finita.");
-        if (!IsFinite(initial) || initial <= minimum)
-            throw new ArgumentOutOfRangeException(nameof(initial), "La temperatura inicial debe superar a la mínima.");
-        if (!IsFinite(cooling) || cooling <= 0f || cooling >= 1f)
-            throw new ArgumentOutOfRangeException(nameof(cooling), "El enfriamiento debe estar entre 0 y 1, sin incluirlos.");
-        if (steps < 1)
-            throw new ArgumentOutOfRangeException(nameof(steps), "La cantidad de pasos debe ser positiva.");
-    }
-
-    private static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
-
-    private static SudokuCandidate GetSuccessor(SudokuCandidate current, System.Random random)
-    {
-        var neighbor = current.Clone();
-        int row = random.Next(9);
-        int columnA = random.Next(9);
-        int columnB;
-        do { columnB = random.Next(9); } while (columnA == columnB);
-
-        int temporary = neighbor.board[row, columnA];
-        neighbor.board[row, columnA] = neighbor.board[row, columnB];
-        neighbor.board[row, columnB] = temporary;
-        neighbor.cost = SudokuEvaluator.Evaluate(neighbor.board).TotalConflicts;
-        return neighbor;
-    }
+    public SudokuPuzzleGenerator CreateGenerator(int[,] solvedBoard, int seed) =>
+        new SudokuPuzzleGenerator(solvedBoard, Settings, seed);
 }

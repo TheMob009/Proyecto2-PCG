@@ -5,12 +5,19 @@ using UnityEngine;
 
 public class SudokuGeneticA : MonoBehaviour
 {
-    [SerializeField] private int populationSize = 100;
-    [SerializeField] private int generations = 150;
-    [SerializeField] private float crossoverRate = 0.8f;
-    [SerializeField] private float mutationRate = 0.2f;
-    [SerializeField] private int tournamentSize = 5;
-    [SerializeField] private int eliteCount = 5;
+    public const int DefaultPopulationSize = 200;
+    public const int DefaultGenerations = 5000;
+    public const float DefaultCrossoverRate = 0.3f;
+    public const float DefaultMutationRate = 0.15f;
+    public const int DefaultTournamentSize = 5;
+    public const int DefaultEliteCount = 5;
+
+    [SerializeField] private int populationSize = DefaultPopulationSize;
+    [SerializeField] private int generations = DefaultGenerations;
+    [SerializeField] private float crossoverRate = DefaultCrossoverRate;
+    [SerializeField] private float mutationRate = DefaultMutationRate;
+    [SerializeField] private int tournamentSize = DefaultTournamentSize;
+    [SerializeField] private int eliteCount = DefaultEliteCount;
 
 
     public void SetParameters(int popSize, int gens, float crossRate, float mutRate, int tourSize, int elite)

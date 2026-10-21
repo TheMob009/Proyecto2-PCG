@@ -45,16 +45,19 @@ namespace PCG.Sudoku
                 boardView.CellClicked -= OnCellClicked;
         }
 
-        /// <summary>Empieza una partida nueva a partir de un tablero resuelto (cero conflictos), vaciando <paramref name="cellsToRemove"/> celdas.</summary>
-        public void StartPuzzle(int[,] solvedBoard, int cellsToRemove, int seed)
+        /// <summary>Juega exactamente el puzzle de pistas verificado durante la generación.</summary>
+        public void StartPuzzle(SudokuPuzzleResult result)
         {
+            if (result == null) throw new ArgumentNullException(nameof(result));
+            if (!result.CanPlay) throw new ArgumentException("El puzzle debe ser resoluble mediante el repertorio lógico.", nameof(result));
             if (boardView == null)
             {
                 StatusChanged?.Invoke("No se encontró SudokuBoardView en la escena; no se puede jugar.");
                 return;
             }
 
-            current = SudokuPuzzleGenerator.CreatePuzzle(solvedBoard, cellsToRemove, seed, out isGiven);
+            current = result.Puzzle;
+            isGiven = result.Givens;
             IsActive = true;
             selectedRow = -1;
             selectedColumn = -1;

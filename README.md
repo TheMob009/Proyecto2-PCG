@@ -1,161 +1,184 @@
 # Generación procedural de Sudoku
 
-Proyecto de la Unidad II de Generación Procedural de Contenido, desarrollado en **Unity 2022.3.62f3**. Genera tableros de Sudoku mediante **Random Start State**, los optimiza con un **algoritmo genético (GA)** y aplica **Simulated Annealing (SA)** al mejor candidato. Desde una solución válida también permite crear una partida y resolverla manualmente.
+Proyecto de la Unidad II de Generación Procedural de Contenido, desarrollado en **Unity 2022.3.62f3**. Combina **Random Start State**, **algoritmo genético (GA)** y **Simulated Annealing (SA)** para generar Sudoku jugables con cantidad de pistas y dificultad lógica objetivo.
 
 ## Integrantes
 
 | Integrante | GitHub |
 |---|---|
-| **Matías Ortega** | [TheMob009](https://github.com/TheMob009) |
-| **Noriyuki Kato** | [NoriKato16](https://github.com/NoriKato16) |
+| Matías Ortega | [TheMob009](https://github.com/TheMob009) |
+| Noriyuki Kato | [NoriKato16](https://github.com/NoriKato16) |
 
-## Enlaces
+## Ejecutar
 
-- [Repositorio del proyecto](https://github.com/TheMob009/Proyecto2-PCG).
-- [Sudoku en la biblioteca de Ludii](https://ludii.games/details.php?keyword=Sudoku), referencia del puzzle seleccionado.
-- [Jugar en itch.io: PCG Sudoku Map Generator](https://themob-00.itch.io/pcg-sudoku-map-generator).
+1. Abrir el proyecto con **Unity 2022.3.62f3**.
+2. Abrir **Assets/Scenes/Proyecto2 V2.unity** y presionar **Play**.
+3. Abrir la pestaña de SA para seleccionar **Pistas objetivo** y **Dificultad**.
+4. Pulsar **Generar**. Las pestañas muestran parámetros del mismo flujo completo.
+5. Comparar la solución de GA y el puzzle de SA con **Anterior** y **Siguiente**.
+6. Pulsar **Jugar** desde el puzzle generado.
 
-## Cómo ejecutar
+El menú **Tools → PCG → Configurar controles de pistas** permite configurar los controles de ambas escenas del proyecto. Este comando guarda esas escenas; debe utilizarse fuera de Play.
 
-**En el navegador:** abre la [versión web en itch.io](https://themob-00.itch.io/pcg-sudoku-map-generator) y utiliza teclado y ratón para jugar.
+## Flujo de generación
 
-**En el editor de Unity:**
+**Random Start → población de GA → solución completa válida → SA de pistas → partida.**
 
-1. Descarga o clona el repositorio y ábrelo con **Unity 2022.3.62f3**.
-2. Abre **`Assets/Scenes/Proyecto2 V2.unity`** y presiona **Play**.
-3. Ajusta los parámetros y pulsa **Generar** dentro del juego.
+Random Start mezcla los dígitos 1–9 de cada fila mediante Fisher–Yates. GA utiliza selección por torneo, cruce por filas, intercambios dentro de filas y elitismo. Su costo suma pares de dígitos iguales en filas, columnas y bloques; cero identifica una solución completa válida.
 
-Las pestañas de técnicas muestran sus parámetros: **Generar siempre ejecuta el flujo completo Random + GA + SA**. Puedes comparar los resultados de GA y SA con **Anterior** y **Siguiente**.
+Si GA agota sus generaciones con conflictos, la interfaz informa el problema y no inicia la selección de pistas. Se debe ajustar GA o utilizar otra semilla.
 
-## Puzzle y representación
+### Simulated Annealing: cantidad y dificultad de las pistas
 
-Sudoku utiliza una cuadrícula de **9 × 9**, dividida en nueve bloques de **3 × 3**. Una solución debe contener los números del **1 al 9**, sin repeticiones en ninguna fila, columna o bloque.
+SA recibe una solución completa válida y busca qué casillas mostrar. Cada estado equivale a una máscara de 81 pistas: el valor de una pista siempre procede de la solución original, que se conserva sin cambios.
 
-El proyecto representa cada tablero mediante una matriz **`int[9,9]`**:
+La preparación elimina pistas en orden aleatorio, comprobando unicidad, hasta acercarse a la cantidad solicitada. SA explora tres movimientos:
 
-- Durante la generación y la búsqueda, todas las posiciones contienen valores del 1 al 9.
-- Cada fila es una permutación de esos números. Esta propiedad se conserva al cruzar o modificar candidatos.
-- Un `SudokuCandidate` contiene el tablero y su costo de conflictos.
-- En una partida, **0** representa una casilla vacía y una matriz `bool[9,9]` identifica las pistas que el jugador no puede modificar.
+- **Eliminar** una pista.
+- **Reponer** una pista de la solución original.
+- **Trasladar** una pista: ocultar una y revelar otra, manteniendo la cantidad.
 
-Esta representación permite acceder directamente a filas, columnas y bloques, copiar candidatos y definir operadores que mantengan las filas válidas. Así, la búsqueda se concentra en resolver los conflictos restantes de columnas y bloques.
+Los estados sin solución única comprobada se rechazan siempre. En los demás, SA acepta mejoras y empates; acepta un aumento de costo `Δ` con probabilidad `exp(-Δ / T)`. La temperatura se multiplica por el enfriamiento en cada propuesta de SA, incluidos los vecinos rechazados por unicidad.
 
-Su limitación es que conservar filas válidas no garantiza que el tablero completo sea una solución. Además, la representación de búsqueda trabaja con tableros completos; las casillas vacías se introducen después, al crear una partida.
+El presupuesto de intentos es global: incluye preparación, vecinos rechazados y reinicios. Cada reinicio reconstruye un conjunto de pistas y restablece la temperatura; el mejor estado se conserva durante toda la ejecución.
 
-Una alternativa sería representar cada bloque 3 × 3 como una permutación de 1 a 9 y modificar valores dentro de un mismo bloque. En ese caso se conservarían los bloques válidos y la evaluación guiaría la corrección de filas y columnas. Cambiar la unidad que se conserva también cambia los operadores de variación y el vecindario de búsqueda.
+### Verificación de unicidad
 
-## Técnicas PCG e integración
+`SudokuSolutionCounter` utiliza backtracking y selecciona la casilla con menos candidatos (MRV). Se detiene al encontrar dos soluciones, ya que solo necesita distinguir **cero, una o varias**.
 
-En la escena principal, una ejecución sigue estas etapas:
+El límite de nodos es determinista. Si se agota antes de certificar el resultado, devuelve **desconocido** y SA rechaza el candidato. Encontrar una solución sin completar la comprobación no demuestra unicidad.
 
-**Random Start State → población inicial → GA → mejor candidato → SA → resultado final.**
+### Dificultad lógica
 
-Todas las técnicas contribuyen al mismo objetivo: obtener un tablero completo con **cero conflictos**. Comparten la representación y la función de evaluación.
+`SudokuLogicalEvaluator` trabaja sobre una copia y resuelve sin adivinar. Agota las técnicas más sencillas antes de avanzar:
 
-### 1. Random Start State
+| Clasificación | Técnicas utilizadas |
+|---|---|
+| Trivial | Tablero ya completo. |
+| Fácil | Candidato único por casilla y posición única de un dígito en una fila, columna o bloque. |
+| Media | Las anteriores y candidatos bloqueados, tanto pointing como claiming. |
+| Difícil | Las anteriores y pares desnudos. |
+| Fuera del repertorio lógico | El evaluador no pudo completar el puzzle con esas técnicas. |
 
-Se generan tantos candidatos como indique el parámetro **Población** de GA. Cada fila se inicializa con los números del 1 al 9 y se mezcla mediante **Fisher–Yates**. Esto produce estados iniciales distintos, con filas válidas, aunque pueden existir conflictos en columnas y bloques.
+El informe conserva la técnica más avanzada utilizada, los pasos por técnica y las casillas pendientes. La clasificación es una convención del proyecto basada en su repertorio y orden de resolución; requiere calibración con jugadores para representar dificultad humana. Un puzzle bloqueado no se etiqueta automáticamente como difícil.
 
-La semilla controla la generación aleatoria. Mantener la misma semilla y configuración permite repetir una ejecución; desactivar la semilla fija produce una nueva en cada generación y muestra el valor utilizado.
+### Función de costo de las pistas
 
-### 2. Algoritmo genético
+Para estados con solución única:
 
-Cada individuo es un tablero completo. El algoritmo utiliza:
+```text
+errorPistas = abs(pistasActuales - pistasObjetivo) / 81
+errorDificultad = (abs(rangoActual - rangoObjetivo) / 4 + casillasPendientes / 81) / 2
+costo = pesoPistas * errorPistas + pesoDificultad * errorDificultad
+```
 
-- **Selección por torneo:** compara candidatos tomados de la población y elige el de menor costo.
-- **Cruce por filas:** combina las primeras filas de un padre con las restantes del otro, utilizando un punto de corte.
-- **Mutación:** para cada fila, según la probabilidad configurada, intercambia dos posiciones de esa fila.
-- **Elitismo:** copia los mejores individuos a la siguiente generación.
+Los rangos son: trivial=0, fácil=1, media=2, difícil=3 y fuera del repertorio=4. Los pesos deben ser positivos. Los estados fuera del repertorio tienen costo finito para que SA pueda atravesarlos, pero no cumplen el objetivo ni habilitan Jugar.
 
-El cruce y la mutación conservan las permutaciones de las filas. El algoritmo se detiene al encontrar un candidato con costo cero o alcanzar el límite de generaciones, y entrega el mejor candidato disponible.
+El éxito requiere **cantidad exacta de pistas, dificultad solicitada y solución única**. Si se agotan los límites, se muestra un resultado aproximado con los objetivos y valores alcanzados. Un resultado aproximado solo habilita Jugar si el evaluador lógico pudo resolverlo; su unicidad ya está comprobada.
 
-### 3. Simulated Annealing
+## Parámetros
 
-SA recibe el mejor tablero producido por GA. Un vecino se construye intercambiando **dos columnas distintas de una fila elegida al azar**, conservando la validez de esa fila.
+### Inicio y GA
 
-Los vecinos que mejoran el costo o lo mantienen se aceptan. Un empeoramiento de magnitud `Δ` puede aceptarse con probabilidad `exp(-Δ / T)`, donde `T` es la temperatura actual. Después de cada paso, la temperatura se multiplica por el factor de enfriamiento.
+La semilla fija y la misma configuración reproducen la ejecución en el mismo entorno. Desactivar la semilla fija genera y muestra otra semilla. La secuencia de SA se deriva de la semilla principal y es independiente de la de GA.
 
-Esta aceptación probabilística permite explorar fuera de un mínimo local, en lugar de aceptar solamente mejoras inmediatas. El resultado conserva el **mejor tablero visitado**, aunque el estado actual de la búsqueda haya empeorado temporalmente.
-
-La búsqueda termina al encontrar costo cero, alcanzar la temperatura mínima o consumir el máximo de pasos. Si GA ya resolvió el tablero, SA registra ese estado y termina sin realizar movimientos.
-
-### Función de evaluación
-
-El costo suma los **pares de valores iguales** dentro de cada fila, columna y bloque:
-
-`costo = conflictos de filas + conflictos de columnas + conflictos de bloques`
-
-Por ejemplo, tres apariciones del mismo número dentro de una unidad aportan tres pares en conflicto. Un par puede contribuir a más de una restricción si comparte, por ejemplo, columna y bloque.
-
-**Menor costo significa un mejor candidato; cero identifica una solución válida en un tablero completo.** La evaluación guía los torneos y la conservación de individuos en GA, así como la aceptación de vecinos y el registro del mejor estado en SA. También se muestra en pantalla para comparar resultados.
-
-## Parámetros configurables
-
-Los siguientes valores corresponden a los controles de **Proyecto2 V2** y pueden modificarse durante la ejecución.
-
-### Inicio
-
-| Parámetro | Valor inicial | Efecto |
+| Parámetro de GA | Rango de interfaz | Inicial |
 |---|---|---|
-| Usar semilla fija | Activado | Permite repetir una ejecución con la misma configuración. |
-| Semilla | `12345` | Entero que controla las secuencias aleatorias. |
+| Población | 20–200 | 200 |
+| Generaciones | 20–10.000 | 5.000 |
+| Crossover | 0–1 | 0,30 |
+| Mutación | 0,01–0,3 | 0,15 |
+| Torneo | 2–10 | 5 |
+| Elitismo | 0–10 | 5 |
 
-### Algoritmo genético
+Los valores predeterminados se calibraron conservando los operadores de GA. Reducir el cruce permite conservar más combinaciones de filas y aumentar población y generaciones ofrece más oportunidades de encontrar una solución. GA se detiene en cuanto alcanza cero conflictos; 5.000 es el máximo de generaciones.
 
-| Parámetro | Rango de la interfaz | Valor inicial | Efecto |
+La validación en **Unity 2022.3.62f3, sin renderizado**, resolvió **100 de 100 semillas** con cero conflictos. En el equipo de prueba, el tiempo medio fue **239 ms**, la mediana **100 ms**, el percentil 95 **944 ms** y el máximo **1.592 ms**. La muestra incluye la semilla inicial `12345`, cero, semillas negativas y los extremos de `int`. Este resultado es empírico: GA conserva un presupuesto finito y puede no resolver otras semillas.
+
+Los componentes y los seis controles de ambas escenas usan los mismos valores. El menú **Tools → PCG → Restablecer parámetros predeterminados de GA** permite restaurarlos; guarda ambas escenas y debe utilizarse fuera de Play.
+
+### SA de pistas
+
+| Control | Rango de interfaz | Inicial | Función |
 |---|---|---|---|
-| Población | 20–100 | 100 | Cantidad de tableros de la población inicial y de cada generación. |
-| Generaciones | 20–150 | 150 | Máximo de generaciones de GA. |
-| Crossover | 0,5–1 | 0,8 | Probabilidad de cruzar dos padres al producir un hijo. |
-| Mutación | 0,01–0,3 | 0,2 | Probabilidad de intentar un intercambio en cada fila. |
-| Torneo | 2–5 | 5 | Cantidad de participantes en cada selección por torneo. |
-| Elitismo | 0–5 | 5 | Cantidad de mejores individuos conservados entre generaciones. |
+| Pistas objetivo | 17–80 | 41 | Cantidad exacta de casillas visibles solicitada. |
+| Perfil de dificultad | Fácil, Media, Difícil | Fácil | Carga pistas y parámetros recomendados al cambiar de nivel. |
+| Temperatura inicial | 0,001–0,2 | 0,05 | Aceptación inicial de empeoramientos. |
+| Enfriamiento | 0,9–0,9999 | 0,999 | Reducción de temperatura por propuesta. |
+| Temperatura mínima | 0,00001–0,001 | 0,0001 | Umbral de detención de cada recorrido. |
+| Intentos totales | 100–30.000 | 5.000 | Presupuesto global de propuestas. |
+| Reinicios máximos | 0–10 | 2 | Nuevos recorridos conservando el mejor resultado. |
+| Peso de pistas | 0,1–5 | 1 | Importancia relativa de la cantidad. |
+| Peso de dificultad | 0,1–5 | 1 | Importancia relativa del nivel lógico. |
 
-### Simulated Annealing
+En el Inspector de **SudokuSimulatedAnnealing** también se configura **Solution Node Limit** (inicial: 20.000), el máximo de nodos por comprobación de unicidad. Aumentarlo permite verificar candidatos más costosos y aumenta el tiempo de búsqueda.
 
-| Parámetro | Rango de la interfaz | Valor inicial | Efecto |
+Los perfiles seleccionan una cantidad de pistas compatible con la búsqueda de cada nivel:
+
+| Parámetro | Fácil | Media | Difícil |
 |---|---|---|---|
-| Temperatura inicial | 0,1–50 | 0,2 | Controla la aceptación inicial de empeoramientos. |
-| Factor de enfriamiento | 0,9–0,9999 | 0,9999 | Multiplicador de la temperatura por paso; cerca de 1 enfría más lentamente. |
-| Temperatura mínima | 0,0001–0,1 | 0,0001 | Umbral de detención por temperatura. |
-| Pasos máximos | 1–50.000 | 50.000 | Límite de vecinos explorados. |
+| Pistas | 41 | 30 | 28 |
+| Temperatura inicial | 0,05 | 0,025 | 0,025 |
+| Enfriamiento | 0,999 | 0,999 | 0,999 |
+| Temperatura mínima | 0,0001 | 0,0001 | 0,0001 |
+| Intentos totales | 5.000 | 30.000 | 30.000 |
+| Reinicios máximos | 2 | 5 | 5 |
+| Peso de pistas | 1 | 3 | 3 |
+| Peso de dificultad | 1 | 1 | 1 |
 
-La temperatura inicial debe ser mayor que la mínima, ambas positivas, y el factor de enfriamiento debe estar entre 0 y 1 sin incluir los extremos. El torneo no puede superar la población y el elitismo debe ser menor que ella. La interfaz informa las configuraciones inválidas antes de iniciar la búsqueda.
+En **Pistas · SA**, cambiar **Perfil de dificultad** carga todos esos valores. Después se pueden modificar los controles individualmente; volver a cambiar de nivel vuelve a cargar su perfil. La opción **Use Difficulty Presets** del Inspector permite desactivar esta carga automática y conservar los ajustes manuales al cambiar la dificultad. El límite de nodos configurado en el Inspector se conserva. Los valores guardados en la escena también se conservan al iniciar Play, hasta que se elija otro nivel.
 
-## Uso y controles
+Los perfiles están definidos en `SudokuDifficultyPresets`. El mayor peso de pistas penaliza desviaciones de la cantidad solicitada; los niveles avanzados disponen de seis recorridos y un presupuesto global mayor. La búsqueda termina antes si alcanza ambos objetivos.
+
+Validación del 21 de octubre de 2026 en Unity 2022.3.62f3, sin renderizado: 100 soluciones de GA diferentes, cada una utilizada para los tres perfiles, con la misma derivación de semilla que el juego. Se volvió a comprobar la unicidad y que media y difícil no se resolvieran con las técnicas del nivel anterior.
+
+| Perfil | Cantidad y nivel exactos | Tiempo medio de SA | Máximo observado |
+|---|---|---|---|
+| Fácil | 100/100 | 1,6 ms | 6,0 ms |
+| Media | 100/100 | 34,8 ms | 124,2 ms |
+| Difícil | 100/100 | 99,0 ms | 650,2 ms |
+
+Estos tiempos solo incluyen SA; excluyen GA, renderizado y la comprobación independiente posterior. Son una medición local, y la tasa observada no garantiza éxito con cualquier semilla o ajuste manual. **Tools → PCG → Verificar perfiles de dificultad de SA** reproduce esta validación fuera de Play y escribe `.utmp/sa-consistency.csv`. La comparación desde .NET se ejecuta con `dotnet run --configuration Release --project Tests/Sudoku.CoreChecks.csproj -- --tune-sa 100 presets`.
+
+La temperatura inicial debe superar a la mínima y el enfriamiento debe estar estrictamente entre cero y uno. No todas las combinaciones de cantidad, dificultad y solución de origen son alcanzables.
+
+## Juego y presentación
+
+El tablero usa `int[9,9]`, con cero para una casilla vacía, y una máscara `bool[9,9]` para las pistas. **Jugar utiliza exactamente el puzzle mostrado y evaluado por SA**.
+
+La interfaz se distribuye para una vista de **960 × 540**. Los parámetros de GA y SA aparecen en una sola columna, con etiquetas y valores separados y sin saltos de línea. Los controles y resultados usan Liberation Sans; el título conserva Monogram y los bordes del proyecto. El resumen ocupa un área independiente del tablero y los botones de navegación. **Tools → PCG → Ajustar legibilidad de la interfaz** aplica esta distribución a ambas escenas, conservando los parámetros configurados.
 
 | Acción | Control |
 |---|---|
-| Ajustar una etapa | Abrir su pestaña y modificar los controles. |
-| Ejecutar Random + GA + SA | **Generar**. Cada pulsación inicia una ejecución nueva. |
-| Comparar etapas | **Anterior** y **Siguiente** alternan entre el resultado de GA y el resultado final de SA. |
-| Crear una partida | **Jugar**, desde un tablero con cero conflictos. |
-| Seleccionar una casilla | Clic sobre la casilla. |
-| Introducir un número | Teclas **1–9**, de la fila numérica o del teclado numérico. |
-| Borrar una respuesta | **Retroceso**, **Suprimir** o **0**. |
+| Seleccionar casilla | Clic. |
+| Introducir respuesta | 1–9, fila numérica o teclado numérico. |
+| Borrar respuesta | Retroceso, Suprimir o 0. |
 
-Al jugar se vacían **40 casillas** de la solución. Las pistas permanecen fijas, los números introducidos se distinguen por color y los conflictos se resaltan. Al completar el tablero sin conflictos se muestra **«¡Sudoku resuelto! Felicitaciones.»**.
+Las pistas permanecen fijas, las respuestas tienen otro color y los conflictos se resaltan. Al completar el tablero sin conflictos se muestra el mensaje de victoria.
 
-La interfaz utiliza la fuente **Monogram** y líneas más gruesas para distinguir los bloques 3 × 3.
+La selección de pistas se ejecuta por bloques de trabajo y cede control durante la comprobación de unicidad. GA sigue ejecutándose de forma síncrona. Las búsquedas tienen límites y no garantizan alcanzar los objetivos dentro del presupuesto.
 
-## Limitaciones actuales
+## Verificaciones
 
-- GA y SA pueden terminar con conflictos si agotan sus límites de búsqueda. En ese caso, **Jugar** rechaza el tablero y se puede generar otro o ajustar los parámetros.
-- La eliminación de casillas conserva al menos la solución de origen, pero **no verifica que el puzzle tenga una única solución**.
-- La cantidad de casillas eliminadas no constituye una medida de dificultad lógica; no hay clasificación automática de dificultad.
-- Las búsquedas se ejecutan de forma síncrona; la interfaz espera hasta que termine la generación.
-- El juego requiere teclado y ratón; no incluye controles táctiles para introducir números.
+Con **.NET SDK 10** instalado, las comprobaciones del núcleo se ejecutan sin Unity ni GPU y no necesitan paquetes externos:
 
-## Créditos
+```powershell
+dotnet run --project Tests/Sudoku.CoreChecks.csproj
+dotnet run --project Tests/Sudoku.CoreChecks.csproj -- --benchmark
+dotnet run --configuration Release --project Tests/Sudoku.CoreChecks.csproj -- --tune-ga 30 defaults
+./Tests/Run-UnityChecks.ps1
+```
 
-### Graphics
+Cubren unicidad, límites de verificación, clasificación lógica, reproducibilidad, conservación de las pistas y detenciones sin éxito. La comparación de semillas informa cantidad y dificultad alcanzadas y movimientos de empeoramiento aceptados; no constituye una garantía de rendimiento para otros tableros.
 
-| Asset | Author | Link |
-|---|---|---|
-| Fantasy UI Borders | **Kenney** | [kenney.nl](https://kenney.nl/assets/fantasy-ui-borders) |
+Las comprobaciones de integración de Unity también están disponibles en **Tools → PCG → Verificar generación de pistas**. El script de PowerShell las ejecuta sin renderizado, requiere cerrar el editor que tenga abierto este proyecto y escribe el registro en `.utmp/scene-checks.log`.
 
-### Fonts
+**Tools → PCG → Verificar parámetros predeterminados de GA** ejecuta la validación de 100 semillas con los parámetros guardados en la escena principal. El comando `--tune-ga` permite comparar configuraciones del GA de producción desde .NET; sus resultados pueden variar respecto de Unity por las diferencias entre runtimes.
 
-| Font | Author | Link |
-|---|---|---|
-| Monogram | **Datagoblin** | [itch.io](https://datagoblin.itch.io/monogram) |
+## Enlaces y créditos
+
+- [Repositorio](https://github.com/TheMob009/Proyecto2-PCG).
+- [Sudoku en Ludii](https://ludii.games/details.php?keyword=Sudoku).
+- [Página de publicación en itch.io](https://themob-00.itch.io/pcg-sudoku-map-generator).
+- Fantasy UI Borders: [Kenney](https://kenney.nl/assets/fantasy-ui-borders).
+- Monogram: [Datagoblin](https://datagoblin.itch.io/monogram).

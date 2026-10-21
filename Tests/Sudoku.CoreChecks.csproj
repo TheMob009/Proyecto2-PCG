@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <LangVersion>9</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="GeneticTuning.cs" />
+    <Compile Include="AnnealingTuning.cs" />
+    <Compile Include="UnityStubs.cs" />
+    <Compile Include="../Assets/Scripts/Proyecto2/Sudoku_Nori/SudokuGeneticA.cs" />
+    <Compile Include="../Assets/Scripts/Proyecto2/Sudoku_Nori/SudokuCandidate.cs" />
+    <Compile Include="../Assets/Scripts/SudokuConstraints.cs" />
+    <Compile Include="../Assets/Scripts/SudokuSolutionCounter.cs" />
+    <Compile Include="../Assets/Scripts/SudokuLogicalEvaluator.cs" />
+    <Compile Include="../Assets/Scripts/SudokuPuzzleGenerator.cs" />
+    <Compile Include="../Assets/Scripts/SudokuDifficultyPresets.cs" />
+    <Compile Include="../Assets/Scripts/SudokuEvaluator.cs" />
+    <Compile Include="../Assets/Scripts/SudokuRandomStartState.cs" />
+  </ItemGroup>
+</Project>
