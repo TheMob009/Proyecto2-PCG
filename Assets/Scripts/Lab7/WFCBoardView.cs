@@ -181,7 +181,7 @@ namespace Laboratorios.Lab7.WaveFunctionCollapse
             legend.rectTransform.anchorMax = new Vector2(1, 0);
             legend.rectTransform.offsetMin = new Vector2(344, 54);
             legend.rectTransform.offsetMax = new Vector2(-24, 90);
-            Text hint = CreateText(root, "Hint", "Miniaturas = patrones posibles. Numero = cantidad. Haz clic en una celda para ver el detalle.", 13);
+            Text hint = CreateText(root, "Hint", "Miniaturas = patrones posibles. Numero = cantidad.", 13);
             hint.rectTransform.anchorMin = Vector2.zero;
             hint.rectTransform.anchorMax = new Vector2(1, 0);
             hint.rectTransform.offsetMin = new Vector2(344, 12);
