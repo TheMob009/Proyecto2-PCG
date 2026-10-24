@@ -1,0 +1,13 @@
+{
+    "unityVersion": "2022.3.62f3",
+    "target": "Windows x64 / Mono / Release",
+    "result": "Succeeded",
+    "executable": "WFC_Lab7.exe",
+    "scenes": [
+        "Assets/Scenes/WFC.unity"
+    ],
+    "warnings": [],
+    "bytes": 78167161,
+    "seconds": 68.8314912,
+    "errors": 0
+}
